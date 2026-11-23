@@ -89,8 +89,8 @@ Enable *Allow the device to perform Home Assistant actions* in the ESPHome devic
 ### Approval (optional)
 
 Approval needs a bridge with the `approval:` option – proposed upstream in
-[switchbot-keypad-bridge pull request](https://github.com/pierluigizagaria/switchbot-keypad-bridge/pulls) (until it is
-merged, use the branch linked there):
+[switchbot-keypad-bridge pull request #56](https://github.com/pierluigizagaria/switchbot-keypad-bridge/pull/56) (until it is
+merged, use the branch `feat/home-assistant-approval` of [this fork](https://github.com/Aggro600/switchbot-keypad-bridge/tree/feat/home-assistant-approval)):
 
 ```yaml
 api:

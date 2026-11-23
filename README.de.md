@@ -39,7 +39,7 @@ nicht erreichbar ist.
    (ESPHome-Gerätename, Standard `keypad-bridge`) und Personen für die Auswahl wählen.
 
 Die Bridge-Konfiguration (Ereignis mit `bridge`, Freigabe mit `approval:` und den Aktionen `approve_unlock` /
-`deny_unlock`) steht im [englischen README](README.md#keypad-bridge-configuration). In den ESPHome-Optionen der Bridge
+`deny_unlock`) steht im [englischen README](README.md#keypad-bridge-configuration). Die Freigabe ist beim Bridge-Autor als [Pull Request #56](https://github.com/pierluigizagaria/switchbot-keypad-bridge/pull/56) eingereicht; bis zur Übernahme den Zweig `feat/home-assistant-approval` aus [diesem Fork](https://github.com/Aggro600/switchbot-keypad-bridge/tree/feat/home-assistant-approval) verwenden. In den ESPHome-Optionen der Bridge
 *„Dem Gerät erlauben, Home-Assistant-Aktionen auszuführen“* einschalten.
 
 ## Gut zu wissen
