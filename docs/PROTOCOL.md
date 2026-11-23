@@ -18,7 +18,7 @@ Byte 4 (`570F52xx`) selects the credential group: `02` PIN, `03` NFC card, `04` 
 | PIN validity | `570F520203 <slot> <from> <until>` | `01` |
 | PIN delete | `570F520205 <slot>` | `01 …` |
 | **Fingerprint** start | `570F520401 <type> 02 <duress>` (type 00 permanent, 01 time-limited) | `01 <slot>` |
-| Fingerprint status | poll `570F530106` | done when `byte3 >> 4 == 3`, duplicate when `byte3 & 0x0F == 3` |
+| Fingerprint status | poll `570F530106` | `byte3`: high nibble = captures so far, low nibble = result (0 running, 1 complete, 3 already enrolled). Observed `10 → 20 → 30 → 31`; only `31` is complete. `09` while scanning. The register keeps the last result, so ignore a stale value read before the first capture. |
 | Fingerprint validity | `570F520402 <slot> <from> <until>` | `01` |
 | Fingerprint confirm | `570F520405 <slot>` | `01 <slot> …` |
 | Fingerprint delete | `570F520403 <slot>` | `01 …` |
@@ -33,4 +33,6 @@ Byte 4 (`570F52xx`) selects the credential group: `02` PIN, `03` NFC card, `04` 
 | NFC status | poll `570F530106` | `byte2`: 1 ok, 2 failed, 3 duplicate, 4 timeout |
 | NFC validity / confirm / delete | `570F520303 <slot> <from> <until>` / `570F520307 <slot>` / `570F520304 <slot>` | |
 
-The `slot` equals the credential `index` reported by the keypad bridge on unlock.
+Slots: fingerprints are stored from keypad slot 10 on (first fingerprint = 10). On unlock the keypad sends the slot and
+the keypad bridge reports `slot - 10` for slots ≥ 10 (faces use slots below 10 and are reported unchanged).
+After too many failed attempts the keypad locks itself for a while (lockout alarm in the SwitchBot integration).

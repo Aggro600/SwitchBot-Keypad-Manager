@@ -36,3 +36,21 @@ sync:
       selector:
         config_entry:
           integration: switchbot_keypad_manager
+update:
+  fields:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: switchbot_keypad_manager
+    entry_id:
+      required: true
+      selector:
+        text:
+    person:
+      selector:
+        text:
+    what:
+      selector:
+        select:
+          translation_key: what
+          options: ["thumb_right", "index_right", "middle_right", "ring_right", "little_right", "thumb_left", "index_left", "middle_left", "ring_left", "little_left", "face", "palm", "pin_random", "nfc_card"]

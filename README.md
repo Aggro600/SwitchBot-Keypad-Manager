@@ -15,6 +15,7 @@ fingerprints, faces, palms, PIN codes and NFC cards, see *who* unlocked *how*, a
 - **Enroll on the keypad from Home Assistant** – pick a person and what to enroll (10 fingers, face, palm,
   random PIN, NFC card), press *Start enrollment*, go to the keypad. Slot and name are stored automatically.
 - **Delete** a credential – it is removed from the keypad *and* the list.
+- **Edit** an entry – wrong person or wrong finger? Select the entry (person and finger are pre-filled), change them, press *Update entry*.
 - **Time limits** for fingerprints, PIN codes and NFC cards (today, 24 h, 1 week, 1 month) and one-time PINs.
 - **Who unlocked how** – "Anna (right thumb) via Fingerprint · 08:15" as a sensor, a logbook entry and an event
   for your automations.
@@ -125,7 +126,7 @@ The keypad always shows success – it does not wait for the lock.
 | `select.…_rule_for_the_person`, `…_rule_for_unknown_credentials` | approval rules |
 | `switch.…_approve_unlocks` | approval on/off |
 | `text.…_new_person_optional` | optional: add a person by name |
-| `button.…_start_enrollment`, `…_delete_entry`, `…_assign_last_unlock`, `…_sync_with_keypad`, `…_cancel` | actions |
+| `button.…_start_enrollment`, `…_update_entry`, `…_delete_entry`, `…_assign_last_unlock`, `…_sync_with_keypad`, `…_cancel` | actions |
 
 Entity IDs follow your Home Assistant language. A dashboard example is in [docs/dashboard.yaml](docs/dashboard.yaml).
 
@@ -134,7 +135,9 @@ Entity IDs follow your Home Assistant language. A dashboard example is in [docs/
 - `switchbot_keypad_manager.enroll` – `person`, `what` (`thumb_right` … `little_left`, `face`, `palm`,
   `pin_random`, `nfc_card`), `validity` (`permanent`, `today`, `24h`, `1w`, `1m`, `once`); returns the entry
   and, for PINs, the generated code.
-- `switchbot_keypad_manager.delete` – `entry_id` (from the `entries` attribute).
+- `switchbot_keypad_manager.update` – `entry_id`, optional `person` and `what` (the kind stays the same).
+- `switchbot_keypad_manager.delete` – `entry_id` (from the `entries` attribute). Entries that were not enrolled here
+  (assigned from the SwitchBot app) are only removed from the list – their keypad slot is unknown, delete them in the app.
 - `switchbot_keypad_manager.sync`
 - Event `switchbot_keypad_manager_unlocked` – `keypad`, `person`, `detail`, `kind`, `kind_text`, `slot`, `text`,
   `allowed`, `time`.
@@ -161,6 +164,11 @@ More examples (one combined automation vs. one automation per case): [docs/examp
 - After the bridge restarts, some keypads stop talking to it until they are power-cycled once.
 - SwitchBot may change the protocol with a firmware update.
 - Face and palm recognition re-arm about 20 s after an unlock.
+- Fingerprints need all captures until the keypad itself reports done; the integration waits for that and
+  checks the keypad count afterwards.
+- Too many failed attempts lock the keypad for a while (lockout alarm in the SwitchBot integration).
+- Keypad slots and reported indexes differ (fingerprints are stored from slot 10, the bridge reports slot − 10);
+  the integration stores both.
 
 ## Disclaimer
 

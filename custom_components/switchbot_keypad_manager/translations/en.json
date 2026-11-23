@@ -112,6 +112,9 @@
       },
       "cancel": {
         "name": "Cancel"
+      },
+      "update": {
+        "name": "Update entry"
       }
     },
     "switch": {
@@ -169,6 +172,28 @@
         "config_entry_id": {
           "name": "Keypad",
           "description": "Only needed with several keypads."
+        }
+      }
+    },
+    "update": {
+      "name": "Update credential",
+      "description": "Changes person and/or finger of an entry (the keypad itself stores no names).",
+      "fields": {
+        "config_entry_id": {
+          "name": "Keypad",
+          "description": "Only needed with several keypads."
+        },
+        "entry_id": {
+          "name": "Entry",
+          "description": "ID from the 'entries' attribute of the Credentials sensor."
+        },
+        "person": {
+          "name": "Person",
+          "description": "New person (optional)."
+        },
+        "what": {
+          "name": "What",
+          "description": "New finger (optional, kind must stay the same)."
         }
       }
     }

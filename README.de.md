@@ -12,6 +12,7 @@ nicht erreichbar ist.
 - **Anlernen am Keypad aus Home Assistant:** Person und *Was* wählen (10 Finger, Gesicht, Handfläche, zufälliger PIN,
   NFC-Karte), *Anlernen starten*, ans Keypad gehen. Platz und Name werden automatisch gespeichert.
 - **Löschen:** Der Zugang ist danach im Keypad *und* in der Liste weg.
+- **Ändern:** falsche Person oder falscher Finger? Eintrag wählen (Person und Finger werden vorbelegt), umstellen, *Eintrag ändern*.
 - **Befristung** für Finger, PIN und Karte (heute, 24 Stunden, 1 Woche, 1 Monat) und einmalige PINs.
 - **Wer hat wie entsperrt:** „Anna (Daumen rechts) per Fingerabdruck · 08:15“ als Sensor, im Logbuch und als Ereignis
   für Automationen.
@@ -48,6 +49,9 @@ Die Bridge-Konfiguration (Ereignis mit `bridge`, Freigabe mit `approval:` und de
 - Was hier angelernt wird, kennt die **SwitchBot-App** nicht; die Namen liegen in Home Assistant.
 - **Handfläche:** Start und Status geprüft, Bestätigen/Löschen aus dem Gesichts-Schema abgeleitet.
 - Nach einem Neustart der Bridge muss manches Keypad einmal stromlos gemacht werden.
+- Finger so oft auflegen, bis das Keypad selbst fertig meldet; die Integration prüft danach die Zählung im Keypad.
+- Zu viele Fehlversuche sperren das Keypad eine Weile (Aussperr-Alarm der SwitchBot-Integration).
+- Zugänge aus der SwitchBot-App (nur zugeordnet) werden beim Löschen nur aus der Liste entfernt – im Keypad über die App löschen.
 - Ein Firmware-Update von SwitchBot kann das Protokoll ändern.
 
 Beispiel-Automationen: [docs/examples.yaml](docs/examples.yaml) · Dashboard: [docs/dashboard.yaml](docs/dashboard.yaml) ·

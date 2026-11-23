@@ -36,6 +36,15 @@ SIGNAL = f"{DOMAIN}_updated_{{}}"
 STORAGE_VERSION = 1
 
 
+def reported_index(keypad_slot: int) -> int:
+    """Slot number the keypad bridge reports on unlock for a keypad slot.
+
+    The keypad reports credentials with a bias of 10 for some kinds (fingerprints are stored from slot 10 on);
+    the bridge removes it (index = slot - 10 for slots >= 10), see switchbot-keypad-bridge lock_protocol.cpp.
+    """
+    return keypad_slot - 10 if keypad_slot >= 10 else keypad_slot
+
+
 class Manager:
     """State and workflows of one keypad (one config entry)."""
 
@@ -65,6 +74,10 @@ class Manager:
     async def load(self) -> None:
         data = await self.store.async_load() or {}
         self.entries = data.get("entries", [])
+        for entry in self.entries:   # 1.0.0 stored the keypad slot of enrolled entries in "slot"
+            if entry.get("source") == "home_assistant" and "keypad_slot" not in entry:
+                entry["keypad_slot"] = entry["slot"]
+                entry["slot"] = reported_index(entry["slot"])
         self.extra_persons = data.get("persons", [])
         self.last = data.get("last", {})
         self.counts = data.get("counts", {})
@@ -83,8 +96,12 @@ class Manager:
         async_dispatcher_send(self.hass, SIGNAL.format(self.entry.entry_id))
 
     @staticmethod
-    def new_entry(kind, slot, person, detail, *, source="home_assistant", valid_from=None, valid_until=None) -> dict:
-        return {"id": uuid.uuid4().hex[:8], "kind": kind, "slot": slot, "person": person, "detail": detail,
+    def new_entry(kind, slot, person, detail, *, source="home_assistant", keypad_slot=None, valid_from=None,
+                  valid_until=None) -> dict:
+        """slot = number reported by the bridge on unlock; keypad_slot = slot on the keypad (known when enrolled
+        here, needed to delete it on the keypad)."""
+        return {"id": uuid.uuid4().hex[:8], "kind": kind, "slot": slot, "keypad_slot": keypad_slot,
+                "person": person, "detail": detail,
                 "source": source, "created": dt_util.now().isoformat(timespec="minutes"),
                 "valid_from": valid_from, "valid_until": valid_until}
 
@@ -203,18 +220,18 @@ class Manager:
 
     async def enroll(self, person: str, what: str, validity: str = "permanent") -> dict:
         if self.running and not self.running.done():
-            raise HomeAssistantError("An enrollment is already running")
+            raise HomeAssistantError(self.t["err_running"])
         if not person:
-            raise HomeAssistantError("Select a person first")
+            raise HomeAssistantError(self.t["err_person"])
         if what not in WHAT_OPTIONS:
             raise HomeAssistantError(f"Unknown option {what}")
         kind, detail = WHAT_OPTIONS[what]
         start, end = self._period(validity)
         once = validity == "once"
         if once and kind != PIN:
-            raise HomeAssistantError("'Once' is only available for PIN codes")
+            raise HomeAssistantError(self.t["err_once"])
         if end and kind not in (PIN, FINGERPRINT, NFC):
-            raise HomeAssistantError("Time limits are only available for PIN, fingerprint and NFC card")
+            raise HomeAssistantError(self.t["err_limit"])
         self.cancel_event.clear()
         self.running = asyncio.current_task()
         await self.set_status("starting", who=person, what=self.t["kind"][kind])
@@ -228,8 +245,9 @@ class Manager:
         finally:
             self.running = None
         # an outdated entry for the same slot is replaced
-        self.entries = [e for e in self.entries if not (e["kind"] == kind and e["slot"] == result["slot"])]
-        entry = self.new_entry(kind, result["slot"], person, detail,
+        slot = reported_index(result["slot"])
+        self.entries = [e for e in self.entries if not (e["kind"] == kind and e["slot"] == slot)]
+        entry = self.new_entry(kind, slot, person, detail, keypad_slot=result["slot"],
                                valid_from=start.isoformat() if end else None, valid_until=end.isoformat() if end else None)
         self.entries.append(entry)
         if person not in self.persons():
@@ -245,10 +263,18 @@ class Manager:
     async def delete(self, entry_id: str) -> None:
         entry = next((e for e in self.entries if e["id"] == entry_id), None)
         if entry is None:
-            raise HomeAssistantError("Entry not found")
+            raise HomeAssistantError(self.t["err_entry"])
+        if entry.get("keypad_slot") is None:
+            # not enrolled here (SwitchBot app / assigned): the keypad slot is unknown, never guess it
+            self.entries.remove(entry)
+            self.choice["entry"] = NO_ENTRY
+            await self.save()
+            await self.set_status("deleted_list_only", entry=self.label(entry))
+            self._notify(self.t["deleted_list_only_note"].format(entry=self.label(entry)))
+            return
         await self.set_status("deleting", entry=self.label(entry))
         try:
-            await self.keypad.delete(entry["kind"], entry["slot"])
+            await self.keypad.delete(entry["kind"], entry["keypad_slot"])
         except KeypadError as err:
             await self.set_status("error", err=str(err))
             raise
@@ -258,12 +284,39 @@ class Manager:
         await self.set_status("deleted", entry=self.label(entry))
         self._notify(self.t["deleted_note"].format(entry=self.label(entry)))
 
+    def what_of(self, entry: dict) -> str:
+        """'What' option that describes an entry (for pre-filling the selects when editing)."""
+        if entry["kind"] == FINGERPRINT and entry.get("detail") in WHAT_OPTIONS:
+            return entry["detail"]
+        return next((k for k, (kind, _) in WHAT_OPTIONS.items() if kind == entry["kind"] and kind != FINGERPRINT),
+                    self.choice["what"])
+
+    async def update_entry(self, entry_id: str, person: str | None = None, what: str | None = None) -> None:
+        """Change person and/or finger of an entry (only in the list – the keypad stores no names)."""
+        entry = next((e for e in self.entries if e["id"] == entry_id), None)
+        if entry is None:
+            raise HomeAssistantError(self.t["err_entry"])
+        if what is not None:
+            kind, detail = WHAT_OPTIONS[what]
+            if kind != entry["kind"]:
+                raise HomeAssistantError(self.t["err_kind"])
+            entry["detail"] = detail
+        if person:
+            entry["person"] = person
+            if person not in self.persons():
+                self.extra_persons.append(person)
+        if self.last and self.last.get("kind") == entry["kind"] and self.last.get("slot") == entry["slot"]:
+            self.last.update({"person": entry["person"], "detail": entry.get("detail") or "", "text": self.who(entry)})
+        self.choice["entry"] = self.label(entry)
+        await self.save()
+        await self.set_status("updated", entry=self.label(entry))
+
     async def assign_last(self, person: str, what: str) -> None:
         """Assign the last unknown unlock (e.g. a credential from the SwitchBot app) – no keypad command."""
         if not self.unassigned:
-            raise HomeAssistantError("No unknown unlock – unlock with the credential first")
+            raise HomeAssistantError(self.t["err_unassigned"])
         if not person:
-            raise HomeAssistantError("Select a person first")
+            raise HomeAssistantError(self.t["err_person"])
         kind, slot = self.unassigned["kind"], self.unassigned["slot"]
         what_kind, detail = WHAT_OPTIONS.get(what, (kind, ""))
         if what_kind != kind:
@@ -320,6 +373,9 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     async def enroll(call: ServiceCall):
         return await _manager(hass, call).enroll(call.data["person"], call.data["what"], call.data["validity"])
 
+    async def update(call: ServiceCall) -> None:
+        await _manager(hass, call).update_entry(call.data["entry_id"], call.data.get("person"), call.data.get("what"))
+
     async def delete(call: ServiceCall) -> None:
         await _manager(hass, call).delete(call.data["entry_id"])
 
@@ -333,6 +389,9 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         supports_response=SupportsResponse.OPTIONAL)
     hass.services.async_register(DOMAIN, "delete", delete, schema=vol.Schema({**base, vol.Required("entry_id"): cv.string}))
     hass.services.async_register(DOMAIN, "sync", sync, schema=vol.Schema(base))
+    hass.services.async_register(DOMAIN, "update", update, schema=vol.Schema({
+        **base, vol.Required("entry_id"): cv.string, vol.Optional("person"): cv.string,
+        vol.Optional("what"): vol.In(list(WHAT_OPTIONS))}))
     return True
 
 

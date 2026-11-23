@@ -69,12 +69,11 @@ class Keypad:
         raise KeypadError("Keypad does not respond (out of range or busy)")
 
     async def _status(self) -> bytes | None:
-        """Enrollment status; None while the keypad is busy."""
+        """Enrollment status; BUSY while the keypad is scanning, None on no answer."""
         try:
-            reply = await self._device()._send_command("570F530106")  # noqa: SLF001
+            return await self._device()._send_command("570F530106")  # noqa: SLF001
         except Exception:  # noqa: BLE001
             return None
-        return None if not reply or reply == BUSY else reply
 
     async def counts(self) -> dict[str, int]:
         data = await self.command("570F530100")
@@ -107,6 +106,12 @@ class Keypad:
 
         limited = valid_from is not None and valid_until is not None
         async with self.lock:
+            before = None
+            if kind != PIN:
+                try:
+                    before = (await self.counts()).get(kind)
+                except KeypadError:
+                    before = None
             if kind == PIN:
                 return await self._pin(limited, once, valid_from, valid_until, report)
             if kind == FINGERPRINT:
@@ -118,12 +123,17 @@ class Keypad:
                     await self.command(f"570F520402{_h(slot)}{_ts(valid_from)}{_ts(valid_until)}")
                 await report("finger")
                 outcome = await self._wait(
+                    # byte 3: high nibble = captures so far, low nibble = result (0 running, 1 complete, 3 exists).
+                    # Observed: 10, 20, 30 while capturing, 31 when complete - "30" is NOT finished yet.
                     duplicate=lambda a: len(a) > 3 and a[0] == 1 and (a[3] & 0x0F) == 3,
-                    done=lambda a: len(a) > 3 and a[0] == 1 and (a[3] >> 4) == 3, cancel=cancel)
+                    done=lambda a: len(a) > 3 and a[0] == 1 and (a[3] & 0x0F) == 1 and (a[3] >> 4) >= 3,
+                    progress=lambda a: len(a) > 3 and a[0] == 1 and (a[3] & 0x0F) == 0,
+                    cancel=cancel)
                 if outcome != "done":
                     await self._cleanup(FINGERPRINT, slot)
                     raise KeypadError(self._reason(outcome, "This finger is already enrolled"))
                 await self.command(f"570F520405{_h(slot)}")
+                await self._verify(FINGERPRINT, slot, before)
                 return {"slot": slot}
             if kind in (FACE, PALM):
                 group = "05" if kind == FACE else "06"
@@ -138,6 +148,7 @@ class Keypad:
                     await self._cleanup(kind, slot)
                     raise KeypadError(self._reason(outcome, ""))
                 await self.command(f"570F52{group}05{_h(slot)}")
+                await self._verify(kind, slot, before)
                 return {"slot": slot}
             if kind == NFC:
                 data = await self.command("570F520301" + ("01" if limited else "00") + "02")
@@ -155,6 +166,7 @@ class Keypad:
                 if limited:
                     await self.command(f"570F520303{_h(slot)}{_ts(valid_from)}{_ts(valid_until)}")
                 await self.command(f"570F520307{_h(slot)}")
+                await self._verify(NFC, slot, before)
                 return {"slot": slot}
         raise KeypadError(f"Unknown credential kind {kind}")
 
@@ -174,13 +186,52 @@ class Keypad:
         await report("pin_done")
         return {"slot": slot, "pin": pin}
 
-    async def _wait(self, *, done, duplicate=None, failed=None, cancel=None) -> str:
-        deadline = time.monotonic() + ENROLL_SECONDS
+    async def _verify(self, kind: str, slot: int, before: int | None) -> None:
+        """Make sure the keypad really stored the credential (its count went up)."""
+        if before is None:
+            return
+        for _ in range(3):
+            try:
+                after = (await self.counts()).get(kind)
+            except KeypadError:
+                after = None
+            _LOGGER.debug("Verify %s slot %s: count %s -> %s", kind, slot, before, after)
+            if after is not None and after > before:
+                return
+            await asyncio.sleep(2)
+        await self._cleanup(kind, slot)
+        raise KeypadError("The keypad did not store the credential – please try again")
+
+    async def _wait(self, *, done, duplicate=None, failed=None, progress=None, cancel=None,
+                    need_busy=True) -> str:
+        """Poll the enrollment status until done/duplicate/failed/timeout.
+
+        The status register keeps the result of the previous enrollment (e.g. a face), so a result is only accepted
+        after the keypad has reported busy (scanning) during this enrollment, or once the status differs from the
+        first (stale) value read after the start.
+        """
+        start = time.monotonic()
+        deadline = start + ENROLL_SECONDS
+        seen_busy = not need_busy
+        seen_progress = False
+        first: bytes | None = None
         while time.monotonic() < deadline:
             if cancel is not None and cancel.is_set():
                 return "cancelled"
             reply = await self._status()
-            if reply:
+            _LOGGER.debug("Enrollment status after %.1f s: %s", time.monotonic() - start,
+                          reply.hex() if reply else None)
+            if reply and progress and progress(reply):
+                seen_progress = True
+            if reply == BUSY:
+                seen_busy = True
+            elif reply and first is None and not seen_busy:
+                first = reply
+            elif reply and (seen_busy or reply != first):
+                # a stale "done" from the previous enrollment needs visible progress first
+                if progress and first is not None and done(first) and not seen_progress and done(reply):
+                    await asyncio.sleep(1)
+                    continue
                 if duplicate and duplicate(reply):
                     return "duplicate"
                 if failed and failed(reply):

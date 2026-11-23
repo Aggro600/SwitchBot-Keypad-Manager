@@ -69,8 +69,13 @@ class Entry(KeypadEntity, SelectEntity):
         return choice if choice in self.options else NO_ENTRY
 
     async def async_select_option(self, option: str) -> None:
-        self.manager.choice["entry"] = option
-        self.manager.notify_entities()
+        m = self.manager
+        m.choice["entry"] = option
+        entry = next((e for e in m.entries if m.label(e) == option), None)
+        if entry is not None:   # pre-fill person and "what" so the entry can be edited right away
+            m.choice["person"] = entry["person"]
+            m.choice["what"] = m.what_of(entry)
+        m.notify_entities()
 
     def selected_id(self):
         return self._labels().get(self.current_option)

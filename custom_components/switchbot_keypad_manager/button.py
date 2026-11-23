@@ -1,4 +1,4 @@
-"""Buttons: enroll, delete, assign last unlock, sync, cancel."""
+"""Buttons: enroll, delete, update entry, assign last unlock, sync, cancel."""
 from __future__ import annotations
 
 from homeassistant.components.button import ButtonEntity
@@ -11,6 +11,7 @@ from .entity import KeypadEntity
 async def async_setup_entry(hass, entry, async_add_entities):
     m = hass.data[DOMAIN][entry.entry_id]
     async_add_entities([Action(m, "enroll", "mdi:account-plus"), Action(m, "delete", "mdi:account-remove"),
+                        Action(m, "update", "mdi:account-edit"),
                         Action(m, "assign_last", "mdi:account-arrow-left"), Action(m, "sync", "mdi:sync"),
                         Action(m, "cancel", "mdi:cancel")])
 
@@ -32,8 +33,14 @@ class Action(KeypadEntity, ButtonEntity):
             choice = m.choice["entry"]
             entry_id = next((e["id"] for e in m.entries if m.label(e) == choice), None)
             if choice == NO_ENTRY or entry_id is None:
-                raise HomeAssistantError("Select an entry first")
+                raise HomeAssistantError(m.t["err_select"])
             await m.delete(entry_id)
+        elif self.key == "update":
+            choice = m.choice["entry"]
+            entry_id = next((e["id"] for e in m.entries if m.label(e) == choice), None)
+            if choice == NO_ENTRY or entry_id is None:
+                raise HomeAssistantError(m.t["err_select"])
+            await m.update_entry(entry_id, m.current_person(), m.choice["what"])
         elif self.key == "assign_last":
             await m.assign_last(m.current_person(), m.choice["what"])
         elif self.key == "sync":

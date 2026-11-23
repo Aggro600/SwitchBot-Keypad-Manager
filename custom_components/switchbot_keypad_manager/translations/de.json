@@ -112,6 +112,9 @@
       },
       "cancel": {
         "name": "Abbrechen"
+      },
+      "update": {
+        "name": "Eintrag ändern"
       }
     },
     "switch": {
@@ -169,6 +172,28 @@
         "config_entry_id": {
           "name": "Keypad",
           "description": "Nur bei mehreren Keypads nötig."
+        }
+      }
+    },
+    "update": {
+      "name": "Zugang ändern",
+      "description": "Ändert Person und/oder Finger eines Eintrags (das Keypad selbst speichert keine Namen).",
+      "fields": {
+        "config_entry_id": {
+          "name": "Keypad",
+          "description": "Nur bei mehreren Keypads nötig."
+        },
+        "entry_id": {
+          "name": "Eintrag",
+          "description": "ID aus dem Attribut 'entries' des Sensors Zugänge."
+        },
+        "person": {
+          "name": "Person",
+          "description": "Neue Person (optional)."
+        },
+        "what": {
+          "name": "Was",
+          "description": "Neuer Finger (optional, die Art bleibt gleich)."
         }
       }
     }
