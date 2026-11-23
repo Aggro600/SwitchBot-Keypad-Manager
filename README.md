@@ -20,7 +20,9 @@ fingerprints, faces, palms, PIN codes and NFC cards, see *who* unlocked *how*, a
 - **Who unlocked how** – "Anna (right thumb) via Fingerprint · 08:15" as a sensor, a logbook entry and an event
   for your automations.
 - **Approval with fallback (optional)** – per person: *always*, *blocked*, *only 6:00–22:00*,
-  *only weekdays 7:00–19:00*, *only when someone is home*. If Home Assistant is not connected or does not answer
+  *only weekdays 7:00–19:00*, *only when someone is home* – and **per credential** (overrides the person):
+  *always open*, *blocked*, *automation only* (never opens, only triggers your automations), *time window*
+  (from/until + every day / weekdays / weekend), *only when someone is home*. If Home Assistant is not connected or does not answer
   within 2 s, the bridge opens the lock on its own – your door never depends on Home Assistant.
 - **Sync** – compares the counts stored on the keypad with the list and shows credentials without a name
   (e.g. created in the SwitchBot app). Assign them by unlocking once and pressing *Assign last unlock*.
@@ -124,6 +126,7 @@ The keypad always shows success – it does not wait for the lock.
 | `select.…_person`, `…_what`, `…_validity` | choices for enrolling |
 | `select.…_entry` | entry to delete |
 | `select.…_rule_for_the_person`, `…_rule_for_unknown_credentials` | approval rules |
+| `select.…_rule_for_the_entry`, `time.…_time_window_from` / `…_until`, `select.…_time_window_days` | rule and time window of the entry selected in *Entry* |
 | `switch.…_approve_unlocks` | approval on/off |
 | `text.…_new_person_optional` | optional: add a person by name |
 | `button.…_start_enrollment`, `…_update_entry`, `…_delete_entry`, `…_assign_last_unlock`, `…_sync_with_keypad`, `…_cancel` | actions |
@@ -140,7 +143,7 @@ Entity IDs follow your Home Assistant language. A dashboard example is in [docs/
   (assigned from the SwitchBot app) are only removed from the list – their keypad slot is unknown, delete them in the app.
 - `switchbot_keypad_manager.sync`
 - Event `switchbot_keypad_manager_unlocked` – `keypad`, `person`, `detail`, `kind`, `kind_text`, `slot`, `text`,
-  `allowed`, `time`.
+  `rule`, `decision` (`open`, `denied`, `event_only`), `allowed`, `time`.
 
 ```yaml
 triggers:
@@ -150,6 +153,17 @@ triggers:
       person: Anna
       kind: fingerprint
       detail: thumb_right
+```
+
+A credential with the rule *automation only* never opens the door (approval must be on) – use it as a "button":
+
+```yaml
+triggers:
+  - trigger: event
+    event_type: switchbot_keypad_manager_unlocked
+    event_data:
+      decision: event_only
+      detail: index_left
 ```
 
 More examples (one combined automation vs. one automation per case): [docs/examples.yaml](docs/examples.yaml).

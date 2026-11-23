@@ -95,6 +95,25 @@
           "always": "Always",
           "blocked": "Blocked"
         }
+      },
+      "entry_rule": {
+        "name": "Rule for the entry",
+        "state": {
+          "inherit": "Like the person",
+          "always": "Always open",
+          "blocked": "Blocked",
+          "event_only": "Automation only (never opens)",
+          "time_window": "Time window",
+          "someone_home": "Only when someone is home"
+        }
+      },
+      "entry_days": {
+        "name": "Time window days",
+        "state": {
+          "all": "Every day",
+          "weekdays": "Weekdays",
+          "weekend": "Weekend"
+        }
       }
     },
     "button": {
@@ -125,6 +144,14 @@
     "text": {
       "new_person": {
         "name": "New person (optional)"
+      }
+    },
+    "time": {
+      "entry_from": {
+        "name": "Time window from"
+      },
+      "entry_until": {
+        "name": "Time window until"
       }
     }
   },

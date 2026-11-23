@@ -1,6 +1,16 @@
 # Example automations for SwitchBot Keypad Manager
 # Event switchbot_keypad_manager_unlocked – data: keypad, person, detail (e.g. thumb_right), text,
-# kind (pin|nfc|fingerprint|face|palm), kind_text, slot, allowed (true/false, only with approval on), time
+# kind (pin|nfc|fingerprint|face|palm), kind_text, slot, rule, decision (open|denied|event_only), allowed, time
+
+# A credential with the rule "automation only" never opens the door and just triggers this:
+- alias: "Keypad – left index finger toggles the hallway light"
+  triggers:
+    - trigger: event
+      event_type: switchbot_keypad_manager_unlocked
+      event_data: {decision: event_only, person: Anna, detail: index_left}
+  actions:
+    - action: light.toggle
+      target: {entity_id: light.hallway}
 
 # ---------- Way 1 (recommended): one automation, one trigger, decide with "choose" ----------
 - alias: "Keypad unlock – hallway light blinks"
@@ -12,7 +22,7 @@
     - action: scene.create
       data: {scene_id: hallway_before, snapshot_entities: [light.hallway]}
     - choose:
-        - conditions: "{{ trigger.event.data.allowed == false }}"        # denied by a rule -> 2x red
+        - conditions: "{{ trigger.event.data.decision == 'denied' }}"    # denied by a rule -> 2x red
           sequence:
             - repeat:
                 count: 2

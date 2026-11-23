@@ -17,6 +17,8 @@ nicht erreichbar ist.
 - **Wer hat wie entsperrt:** „Anna (Daumen rechts) per Fingerabdruck · 08:15“ als Sensor, im Logbuch und als Ereignis
   für Automationen.
 - **Freigabe mit Notweg (optional):** pro Person *Immer*, *Gesperrt*, *Nur 6–22 Uhr*, *Nur werktags 7–19 Uhr*,
+  *Nur wenn jemand zu Hause ist* – und **pro Zugang** (geht vor der Person): *Immer öffnen*, *Gesperrt*,
+  *Nur Automation* (öffnet nie, löst nur Automationen aus), *Zeitfenster* (Von/Bis + Alle Tage/Werktags/Wochenende),
   *Nur wenn jemand zu Hause ist*. Ist Home Assistant nicht verbunden oder antwortet nicht binnen 2 s, öffnet die
   Bridge selbst – die Tür hängt nie an Home Assistant.
 - **Abgleich:** vergleicht die Anzahl im Keypad mit der Liste und zeigt Zugänge ohne Namen (z. B. aus der

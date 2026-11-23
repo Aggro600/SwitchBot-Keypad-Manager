@@ -30,7 +30,7 @@ from .keypad import Keypad, KeypadError
 from .texts import detail_text, texts
 
 _LOGGER = logging.getLogger(__name__)
-PLATFORMS = [Platform.BUTTON, Platform.SELECT, Platform.SENSOR, Platform.SWITCH, Platform.TEXT]
+PLATFORMS = [Platform.BUTTON, Platform.SELECT, Platform.SENSOR, Platform.SWITCH, Platform.TEXT, Platform.TIME]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 SIGNAL = f"{DOMAIN}_updated_{{}}"
 STORAGE_VERSION = 1
@@ -164,7 +164,8 @@ class Manager:
         except (TypeError, ValueError):
             return
         match = next((e for e in self.entries if e["kind"] == kind and e["slot"] == slot), None)
-        allowed = self.allowed(match["person"] if match else None)
+        decision, rule = self.decide(match)
+        allowed = decision == "open"
         if self.approval:
             self._answer_bridge(allowed)
         kind_text = self.t["kind"].get(kind, kind)
@@ -174,21 +175,34 @@ class Manager:
         else:
             text = f"{self.t['unknown']} ({kind_text} {slot})"
             self.unassigned = {"kind": kind, "slot": slot}
+        # decision: open | denied | event_only (only meaningful with approval on; without it the bridge always opens)
         self.last = {"person": match["person"] if match else None, "detail": (match.get("detail") or "") if match else "",
-                     "text": text, "kind": kind, "kind_text": kind_text, "slot": slot,
+                     "text": text, "kind": kind, "kind_text": kind_text, "slot": slot, "rule": rule,
+                     "decision": decision if self.approval else "open",
                      "allowed": allowed if self.approval else None, "time": dt_util.now().isoformat()}
         self.hass.bus.async_fire(UNLOCKED_EVENT, {"keypad": self.entry.title, **self.last})
         self.hass.async_create_task(self.save())
         if "logbook" in self.hass.config.components:
             message = f"{text} {self.t['via']} {kind_text}"
-            if self.approval and not allowed:
-                message += f" ({self.t['denied']})"
+            if self.approval and decision != "open":
+                message += f" ({self.t[decision]})"
             self.hass.async_create_task(self.hass.services.async_call(
                 "logbook", "log", {"name": self.entry.title, "message": message}))
 
     # ---------- approval rules ----------
-    def allowed(self, person: str | None) -> bool:
-        rule = self.rules.get(person, "always") if person else self.unknown_rule
+    def decide(self, entry: dict | None) -> tuple[str, str]:
+        """Decision for an unlock: ('open' | 'denied' | 'event_only', effective rule)."""
+        if entry is None:
+            rule = self.unknown_rule
+        else:
+            rule = entry.get("rule") or "inherit"
+            if rule == "inherit":
+                rule = self.rules.get(entry["person"], "always")
+        if rule == "event_only":
+            return "event_only", rule
+        return ("open" if self._rule_allows(rule, entry) else "denied"), rule
+
+    def _rule_allows(self, rule: str, entry: dict | None) -> bool:
         now = dt_util.now()
         if rule == "blocked":
             return False
@@ -196,6 +210,14 @@ class Manager:
             return 6 <= now.hour < 22
         if rule == "weekdays":
             return now.weekday() < 5 and 7 <= now.hour < 19
+        if rule == "time_window":
+            window = (entry or {}).get("window") or {}
+            days = window.get("days", "all")
+            if (days == "weekdays" and now.weekday() >= 5) or (days == "weekend" and now.weekday() < 5):
+                return False
+            start, end = window.get("from", "06:00"), window.get("until", "22:00")
+            current = now.strftime("%H:%M")
+            return start <= current < end if start <= end else (current >= start or current < end)
         if rule == "someone_home":
             home = self.hass.states.get("zone.home")
             try:
@@ -203,6 +225,20 @@ class Manager:
             except ValueError:
                 return False
         return True
+
+    def selected_entry(self) -> dict | None:
+        return next((e for e in self.entries if self.label(e) == self.choice["entry"]), None)
+
+    async def set_entry_rule(self, **changes) -> None:
+        """Change rule / time window of the entry selected in 'Entry'."""
+        entry = self.selected_entry()
+        if entry is None:
+            raise HomeAssistantError(self.t["err_select"])
+        if "rule" in changes:
+            entry["rule"] = changes.pop("rule")
+        if changes:
+            entry.setdefault("window", {"from": "06:00", "until": "22:00", "days": "all"}).update(changes)
+        await self.save()
 
     def _answer_bridge(self, allowed: bool) -> None:
         service = f"{self.entry.data[CONF_BRIDGE].replace('-', '_')}_{'approve' if allowed else 'deny'}_unlock"

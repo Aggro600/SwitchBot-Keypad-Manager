@@ -20,4 +20,6 @@ WHAT_OPTIONS = {**{f: (FINGERPRINT, f) for f in FINGERS},
 
 VALIDITY_OPTIONS = ["permanent", "today", "24h", "1w", "1m", "once"]
 RULE_OPTIONS = ["always", "blocked", "daytime", "weekdays", "someone_home"]
+ENTRY_RULE_OPTIONS = ["inherit", "always", "blocked", "event_only", "time_window", "someone_home"]
+DAYS_OPTIONS = ["all", "weekdays", "weekend"]
 NO_ENTRY = "none"

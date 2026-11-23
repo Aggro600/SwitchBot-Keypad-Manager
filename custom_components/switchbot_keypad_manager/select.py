@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from homeassistant.components.select import SelectEntity
 
-from .const import DOMAIN, NO_ENTRY, RULE_OPTIONS, VALIDITY_OPTIONS, WHAT_OPTIONS
+from .const import DAYS_OPTIONS, DOMAIN, ENTRY_RULE_OPTIONS, NO_ENTRY, RULE_OPTIONS, VALIDITY_OPTIONS, WHAT_OPTIONS
 from .entity import KeypadEntity
 
 
@@ -11,7 +11,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     m = hass.data[DOMAIN][entry.entry_id]
     async_add_entities([Person(m), ChoiceSelect(m, "what", list(WHAT_OPTIONS), "mdi:fingerprint"),
                         ChoiceSelect(m, "validity", VALIDITY_OPTIONS, "mdi:calendar-clock"), Entry(m),
-                        PersonRule(m), UnknownRule(m)])
+                        PersonRule(m), UnknownRule(m), EntryRule(m), EntryDays(m)])
 
 
 class Person(KeypadEntity, SelectEntity):
@@ -112,3 +112,37 @@ class UnknownRule(KeypadEntity, SelectEntity):
     async def async_select_option(self, option: str) -> None:
         self.manager.unknown_rule = option
         await self.manager.save()
+
+
+class EntryRule(KeypadEntity, SelectEntity):
+    """Approval rule of the entry currently selected in 'Entry' (overrides the person rule)."""
+    _attr_icon = "mdi:shield-key"
+    _attr_options = ENTRY_RULE_OPTIONS
+
+    def __init__(self, manager):
+        super().__init__(manager, "entry_rule")
+
+    @property
+    def current_option(self):
+        entry = self.manager.selected_entry()
+        return (entry.get("rule") or "inherit") if entry else "inherit"
+
+    async def async_select_option(self, option: str) -> None:
+        await self.manager.set_entry_rule(rule=option)
+
+
+class EntryDays(KeypadEntity, SelectEntity):
+    """Days of the time window of the selected entry."""
+    _attr_icon = "mdi:calendar-week"
+    _attr_options = DAYS_OPTIONS
+
+    def __init__(self, manager):
+        super().__init__(manager, "entry_days")
+
+    @property
+    def current_option(self):
+        entry = self.manager.selected_entry()
+        return ((entry or {}).get("window") or {}).get("days", "all")
+
+    async def async_select_option(self, option: str) -> None:
+        await self.manager.set_entry_rule(days=option)

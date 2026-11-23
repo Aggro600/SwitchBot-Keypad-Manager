@@ -95,6 +95,25 @@
           "always": "Immer",
           "blocked": "Gesperrt"
         }
+      },
+      "entry_rule": {
+        "name": "Regel für den Eintrag",
+        "state": {
+          "inherit": "Wie die Person",
+          "always": "Immer öffnen",
+          "blocked": "Gesperrt",
+          "event_only": "Nur Automation (öffnet nie)",
+          "time_window": "Zeitfenster",
+          "someone_home": "Nur wenn jemand zu Hause ist"
+        }
+      },
+      "entry_days": {
+        "name": "Zeitfenster Tage",
+        "state": {
+          "all": "Alle Tage",
+          "weekdays": "Werktags",
+          "weekend": "Wochenende"
+        }
       }
     },
     "button": {
@@ -125,6 +144,14 @@
     "text": {
       "new_person": {
         "name": "Neue Person (optional)"
+      }
+    },
+    "time": {
+      "entry_from": {
+        "name": "Zeitfenster von"
+      },
+      "entry_until": {
+        "name": "Zeitfenster bis"
       }
     }
   },
