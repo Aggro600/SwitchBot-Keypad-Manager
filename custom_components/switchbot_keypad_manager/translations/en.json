@@ -320,6 +320,24 @@
         "1m": "1 month",
         "once": "Once (PIN only)"
       }
+    },
+    "decision": {
+      "options": {
+        "any": "Any",
+        "open": "Opened",
+        "denied": "Denied",
+        "event_only": "Automation only"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "unlocked": "Unlocked (any credential)",
+      "unlocked_by_entry": "Unlocked with a specific credential"
+    },
+    "extra_fields": {
+      "entry": "Credential",
+      "decision": "Outcome"
     }
   }
 }

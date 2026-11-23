@@ -207,7 +207,8 @@ class Manager:
                      "text": text, "kind": kind, "kind_text": kind_text, "slot": slot, "rule": rule,
                      "decision": decision if self.approval else "open",
                      "allowed": allowed if self.approval else None, "time": dt_util.now().isoformat()}
-        self.hass.bus.async_fire(UNLOCKED_EVENT, {"keypad": self.entry.title, **self.last})
+        self.hass.bus.async_fire(UNLOCKED_EVENT, {"keypad": self.entry.title, "config_entry_id": self.entry.entry_id,
+                                                  "entry_id": match["id"] if match else None, **self.last})
         self.hass.async_create_task(self.save())
         if "logbook" in self.hass.config.components:
             message = f"{text} {self.t['via']} {kind_text}"

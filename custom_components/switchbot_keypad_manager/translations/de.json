@@ -320,6 +320,24 @@
         "1m": "1 Monat",
         "once": "Einmalig (nur PIN)"
       }
+    },
+    "decision": {
+      "options": {
+        "any": "Beliebig",
+        "open": "Geöffnet",
+        "denied": "Abgelehnt",
+        "event_only": "Nur Automation"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "unlocked": "Entsperrt (beliebiger Zugang)",
+      "unlocked_by_entry": "Entsperrt mit bestimmtem Zugang"
+    },
+    "extra_fields": {
+      "entry": "Zugang",
+      "decision": "Ergebnis"
     }
   }
 }

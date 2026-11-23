@@ -192,6 +192,10 @@ triggers:
       detail: thumb_right
 ```
 
+**Device triggers** – easiest way in the automation editor: *Add trigger → Device → (your keypad)*:
+*Unlocked (any credential)* or *Unlocked with a specific credential* (pick person + finger/face/… from a list),
+each with an optional *Outcome* (any / opened / denied / automation only).
+
 A credential with the rule *automation only* never opens the door (approval must be on) – use it as a "button":
 
 ```yaml
