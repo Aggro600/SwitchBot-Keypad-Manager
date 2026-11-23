@@ -17,5 +17,5 @@
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/Aggro600/SwitchBot-Keypad-Manager/issues",
   "requirements": [],
-  "version": "1.5.1"
+  "version": "1.5.2"
 }

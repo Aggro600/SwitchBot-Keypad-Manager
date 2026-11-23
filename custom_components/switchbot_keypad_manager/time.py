@@ -24,6 +24,12 @@ class WindowTime(KeypadEntity, TimeEntity):
         self.number = number
 
     @property
+    def available(self) -> bool:
+        """Only meaningful when the selected entry uses the rule 'time window' (otherwise ignored)."""
+        entry = self.manager.selected_entry()
+        return entry is not None and (entry.get("rule") or "inherit") == "time_window"
+
+    @property
     def native_value(self) -> time:
         entry = self.manager.selected_entry()
         windows = self.manager.windows(entry) if entry else [{"from": "06:00", "until": "22:00"}] * WINDOWS

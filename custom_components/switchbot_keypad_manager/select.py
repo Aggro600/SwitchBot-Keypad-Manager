@@ -142,6 +142,12 @@ class EntryDays(KeypadEntity, SelectEntity):
         self.number = number
 
     @property
+    def available(self) -> bool:
+        """Only meaningful when the selected entry uses the rule 'time window' (otherwise ignored)."""
+        entry = self.manager.selected_entry()
+        return entry is not None and (entry.get("rule") or "inherit") == "time_window"
+
+    @property
     def current_option(self):
         entry = self.manager.selected_entry()
         if entry is None:
