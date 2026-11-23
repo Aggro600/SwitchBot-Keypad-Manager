@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from homeassistant.components.select import SelectEntity
 
-from .const import DAYS_OPTIONS, DOMAIN, ENTRY_RULE_OPTIONS, NO_ENTRY, RULE_OPTIONS, VALIDITY_OPTIONS, WHAT_OPTIONS
+from .const import DAYS_OPTIONS, DOMAIN, ENTRY_FALLBACK_OPTIONS, FALLBACK_OPTIONS, ENTRY_RULE_OPTIONS, NO_ENTRY, RULE_OPTIONS, VALIDITY_OPTIONS, WHAT_OPTIONS
 from .entity import KeypadEntity
 
 
@@ -11,7 +11,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
     m = hass.data[DOMAIN][entry.entry_id]
     async_add_entities([Person(m), ChoiceSelect(m, "what", list(WHAT_OPTIONS), "mdi:fingerprint"),
                         ChoiceSelect(m, "validity", VALIDITY_OPTIONS, "mdi:calendar-clock"), Entry(m),
-                        PersonRule(m), UnknownRule(m), EntryRule(m), EntryDays(m)])
+                        PersonRule(m), UnknownRule(m), EntryRule(m), EntryDays(m),
+                        FallbackMode(m), EntryFallback(m)])
 
 
 class Person(KeypadEntity, SelectEntity):
@@ -146,3 +147,37 @@ class EntryDays(KeypadEntity, SelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         await self.manager.set_entry_rule(days=option)
+
+
+class FallbackMode(KeypadEntity, SelectEntity):
+    """What the bridge does without Home Assistant: open for all, only allowed entries, or nobody."""
+    _attr_icon = "mdi:door-closed-lock"
+    _attr_options = FALLBACK_OPTIONS
+
+    def __init__(self, manager):
+        super().__init__(manager, "fallback_mode")
+
+    @property
+    def current_option(self):
+        return self.manager.fallback_mode
+
+    async def async_select_option(self, option: str) -> None:
+        self.manager.fallback_mode = option
+        await self.manager.save()
+
+
+class EntryFallback(KeypadEntity, SelectEntity):
+    """Whether the selected entry may open via the fallback (mode 'only allowed entries')."""
+    _attr_icon = "mdi:door-open"
+    _attr_options = ENTRY_FALLBACK_OPTIONS
+
+    def __init__(self, manager):
+        super().__init__(manager, "entry_fallback")
+
+    @property
+    def current_option(self):
+        entry = self.manager.selected_entry()
+        return "allowed" if (entry or {}).get("fallback", True) else "blocked"
+
+    async def async_select_option(self, option: str) -> None:
+        await self.manager.set_entry_rule(fallback=option == "allowed")

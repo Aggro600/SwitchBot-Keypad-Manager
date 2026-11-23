@@ -19,6 +19,7 @@ from homeassistant.core import Event, HomeAssistant, ServiceCall, SupportsRespon
 from homeassistant.exceptions import HomeAssistantError
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
@@ -60,6 +61,8 @@ class Manager:
         self.rules: dict[str, str] = {}          # person -> rule
         self.unknown_rule = "always"              # rule for credentials without a person
         self.approval = False                     # approve/deny unlocks via the bridge
+        self.fallback_mode = "all"                # bridge fallback without HA: all | allowed | none
+        self._pushed_fallback: tuple | None = None
         self.unassigned: dict | None = None       # last unlock without a matching entry
         self.status_key, self.status_args = "ready", {}
         self.choice = {"person": None, "what": "thumb_right", "validity": "permanent", "entry": NO_ENTRY}
@@ -84,12 +87,35 @@ class Manager:
         self.rules = data.get("rules", {})
         self.unknown_rule = data.get("unknown_rule", "always")
         self.approval = data.get("approval", False)
+        self.fallback_mode = data.get("fallback_mode", "all")
 
     async def save(self) -> None:
         await self.store.async_save({
             "entries": self.entries, "persons": self.extra_persons, "last": self.last, "counts": self.counts,
-            "rules": self.rules, "unknown_rule": self.unknown_rule, "approval": self.approval})
+            "rules": self.rules, "unknown_rule": self.unknown_rule, "approval": self.approval,
+            "fallback_mode": self.fallback_mode})
         self.notify_entities()
+        self.push_fallback()
+
+    # ---------- fallback policy on the bridge ----------
+    def fallback_policy(self) -> tuple[int, str]:
+        """(mode, allow list) for the bridge: 0 all, 1 only allowed entries, 2 none."""
+        mode = {"all": 0, "allowed": 1, "none": 2}.get(self.fallback_mode, 0)
+        allow = ",".join(f"{e['kind']}:{e['slot']}" for e in self.entries if e.get("fallback", True))
+        return mode, allow
+
+    @callback
+    def push_fallback(self, force: bool = False) -> None:
+        """Send the fallback policy to the bridge (stored there in flash) when it changed."""
+        policy = self.fallback_policy()
+        if not force and policy == self._pushed_fallback:
+            return
+        service = f"{self.entry.data[CONF_BRIDGE].replace('-', '_')}_set_fallback"
+        if not self.hass.services.has_service("esphome", service):
+            return
+        self._pushed_fallback = policy
+        self.hass.async_create_task(self.hass.services.async_call(
+            "esphome", service, {"mode": policy[0], "allow": policy[1]}))
 
     @callback
     def notify_entities(self) -> None:
@@ -236,6 +262,8 @@ class Manager:
             raise HomeAssistantError(self.t["err_select"])
         if "rule" in changes:
             entry["rule"] = changes.pop("rule")
+        if "fallback" in changes:
+            entry["fallback"] = changes.pop("fallback")
         if changes:
             entry.setdefault("window", {"from": "06:00", "until": "22:00", "days": "all"}).update(changes)
         await self.save()
@@ -436,6 +464,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await manager.load()
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = manager
     entry.async_on_unload(hass.bus.async_listen(BRIDGE_UNLOCK_EVENT, manager.handle_bridge_event))
+
+    @callback
+    def _service_registered(event: Event) -> None:
+        if event.data.get("domain") == "esphome" and str(event.data.get("service", "")).endswith("_set_fallback"):
+            manager.push_fallback(force=True)
+
+    entry.async_on_unload(hass.bus.async_listen("service_registered", _service_registered))
+    entry.async_on_unload(async_track_time_interval(
+        hass, callback(lambda _now: manager.push_fallback(force=True)), timedelta(minutes=15)))
+    manager.push_fallback(force=True)
     entry.async_on_unload(entry.add_update_listener(_reload))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True

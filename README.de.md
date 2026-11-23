@@ -20,7 +20,8 @@ nicht erreichbar ist.
   *Nur wenn jemand zu Hause ist* – und **pro Zugang** (geht vor der Person): *Immer öffnen*, *Gesperrt*,
   *Nur Automation* (öffnet nie, löst nur Automationen aus), *Zeitfenster* (Von/Bis + Alle Tage/Werktags/Wochenende),
   *Nur wenn jemand zu Hause ist*. Ist Home Assistant nicht verbunden oder antwortet nicht binnen 2 s, öffnet die
-  Bridge selbst – die Tür hängt nie an Home Assistant.
+  Bridge nach deiner Wahl: alle erkannten Zugänge, nur für den Notweg erlaubte Einträge oder keiner (dann bleibt die
+  Tür ohne Home Assistant zu). Die Notweg-Regel ist in der Bridge gespeichert.
 - **Abgleich:** vergleicht die Anzahl im Keypad mit der Liste und zeigt Zugänge ohne Namen (z. B. aus der
   SwitchBot-App). Zuordnen: einmal damit entsperren, *Letzte Entsperrung zuordnen*.
 - **Nur Auswahl:** alles über Auswahllisten und Knöpfe; Freitext nur optional (neue Person).

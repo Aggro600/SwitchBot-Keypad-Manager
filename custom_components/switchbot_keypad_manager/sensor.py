@@ -52,11 +52,12 @@ class Credentials(KeypadEntity, SensorEntity):
         return {
             "entries": [{"id": e["id"], "person": e["person"], "detail": e.get("detail", ""), "kind": e["kind"],
                          "slot": e["slot"], "keypad_slot": e.get("keypad_slot"), "rule": e.get("rule") or "inherit",
-                         "window": e.get("window"), "valid_until": e.get("valid_until"), "source": e.get("source")}
+                         "window": e.get("window"), "fallback": e.get("fallback", True), "valid_until": e.get("valid_until"), "source": e.get("source")}
                         for e in ordered],
             "list": "\n".join(m.label(e) for e in ordered),
             "on_keypad": {m.t["kind"].get(k, k): n for k, n in m.counts.items()},
             "unassigned": m.unassigned_counts(),
+            "fallback_mode": m.fallback_mode,
         }
 
 

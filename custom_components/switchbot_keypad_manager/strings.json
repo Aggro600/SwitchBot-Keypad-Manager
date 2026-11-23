@@ -114,6 +114,21 @@
           "weekdays": "Weekdays",
           "weekend": "Weekend"
         }
+      },
+      "fallback_mode": {
+        "name": "Fallback without Home Assistant",
+        "state": {
+          "all": "Open for every recognised credential",
+          "allowed": "Only entries allowed for the fallback",
+          "none": "Nobody (door stays locked without Home Assistant)"
+        }
+      },
+      "entry_fallback": {
+        "name": "Fallback for the entry",
+        "state": {
+          "allowed": "Allowed",
+          "blocked": "Not allowed"
+        }
       }
     },
     "button": {

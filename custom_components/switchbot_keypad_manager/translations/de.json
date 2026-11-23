@@ -114,6 +114,21 @@
           "weekdays": "Werktags",
           "weekend": "Wochenende"
         }
+      },
+      "fallback_mode": {
+        "name": "Notweg ohne Home Assistant",
+        "state": {
+          "all": "Alle erkannten Zugänge öffnen",
+          "allowed": "Nur für den Notweg erlaubte Einträge",
+          "none": "Keiner (ohne Home Assistant bleibt die Tür zu)"
+        }
+      },
+      "entry_fallback": {
+        "name": "Notweg für den Eintrag",
+        "state": {
+          "allowed": "Erlaubt",
+          "blocked": "Nicht erlaubt"
+        }
       }
     },
     "button": {

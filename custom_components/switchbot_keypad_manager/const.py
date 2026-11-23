@@ -23,3 +23,5 @@ RULE_OPTIONS = ["always", "blocked", "daytime", "weekdays", "someone_home"]
 ENTRY_RULE_OPTIONS = ["inherit", "always", "blocked", "event_only", "time_window", "someone_home"]
 DAYS_OPTIONS = ["all", "weekdays", "weekend"]
 NO_ENTRY = "none"
+FALLBACK_OPTIONS = ["all", "allowed", "none"]
+ENTRY_FALLBACK_OPTIONS = ["allowed", "blocked"]
