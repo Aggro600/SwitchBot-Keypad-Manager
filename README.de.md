@@ -18,7 +18,7 @@ nicht erreichbar ist.
   für Automationen.
 - **Freigabe mit Notweg (optional):** pro Person *Immer*, *Gesperrt*, *Nur 6–22 Uhr*, *Nur werktags 7–19 Uhr*,
   *Nur wenn jemand zu Hause ist* – und **pro Zugang** (geht vor der Person): *Immer öffnen*, *Gesperrt*,
-  *Nur Automation* (öffnet nie, löst nur Automationen aus), *Zeitfenster* (Von/Bis + Alle Tage/Werktags/Wochenende),
+  *Nur Automation* (öffnet nie, löst nur Automationen aus), *Zeitfenster* (bis zu 3 pro Zugang, je Von/Bis + Alle Tage/Werktags/Wochenende/einzelner Tag; geöffnet wird, wenn eines passt),
   *Nur wenn jemand zu Hause ist*. Ist Home Assistant nicht verbunden oder antwortet nicht binnen 2 s, öffnet die
   Bridge nach deiner Wahl: alle erkannten Zugänge, nur für den Notweg erlaubte Einträge oder keiner (dann bleibt die
   Tür ohne Home Assistant zu). Die Notweg-Regel ist in der Bridge gespeichert.

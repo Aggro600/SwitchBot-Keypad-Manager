@@ -112,7 +112,15 @@
         "state": {
           "all": "Every day",
           "weekdays": "Weekdays",
-          "weekend": "Weekend"
+          "weekend": "Weekend",
+          "mon": "Monday",
+          "tue": "Tuesday",
+          "wed": "Wednesday",
+          "thu": "Thursday",
+          "fri": "Friday",
+          "sat": "Saturday",
+          "sun": "Sunday",
+          "off": "Off"
         }
       },
       "fallback_mode": {
@@ -128,6 +136,38 @@
         "state": {
           "allowed": "Allowed",
           "blocked": "Not allowed"
+        }
+      },
+      "entry_days_2": {
+        "name": "Time window 2 days",
+        "state": {
+          "all": "Every day",
+          "weekdays": "Weekdays",
+          "weekend": "Weekend",
+          "mon": "Monday",
+          "tue": "Tuesday",
+          "wed": "Wednesday",
+          "thu": "Thursday",
+          "fri": "Friday",
+          "sat": "Saturday",
+          "sun": "Sunday",
+          "off": "Off"
+        }
+      },
+      "entry_days_3": {
+        "name": "Time window 3 days",
+        "state": {
+          "all": "Every day",
+          "weekdays": "Weekdays",
+          "weekend": "Weekend",
+          "mon": "Monday",
+          "tue": "Tuesday",
+          "wed": "Wednesday",
+          "thu": "Thursday",
+          "fri": "Friday",
+          "sat": "Saturday",
+          "sun": "Sunday",
+          "off": "Off"
         }
       }
     },
@@ -167,6 +207,18 @@
       },
       "entry_until": {
         "name": "Time window until"
+      },
+      "entry_from_2": {
+        "name": "Time window 2 from"
+      },
+      "entry_until_2": {
+        "name": "Time window 2 until"
+      },
+      "entry_from_3": {
+        "name": "Time window 3 from"
+      },
+      "entry_until_3": {
+        "name": "Time window 3 until"
       }
     }
   },

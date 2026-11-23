@@ -22,7 +22,8 @@ fingerprints, faces, palms, PIN codes and NFC cards, see *who* unlocked *how*, a
 - **Approval with fallback (optional)** – per person: *always*, *blocked*, *only 6:00–22:00*,
   *only weekdays 7:00–19:00*, *only when someone is home* – and **per credential** (overrides the person):
   *always open*, *blocked*, *automation only* (never opens, only triggers your automations), *time window*
-  (from/until + every day / weekdays / weekend), *only when someone is home*. If Home Assistant is not connected or does not answer
+  (up to 3 windows per entry, each from/until + every day / weekdays / weekend / a single day; opens if one matches),
+  *only when someone is home*. If Home Assistant is not connected or does not answer
   within 2 s, the bridge falls back – by default it opens for every recognised credential, or (your choice) only
   for entries allowed for the fallback, or for nobody. The fallback policy is stored on the bridge.
 - **Sync** – compares the counts stored on the keypad with the list and shows credentials without a name
@@ -140,7 +141,7 @@ The keypad always shows success – it does not wait for the lock.
 | `select.…_person`, `…_what`, `…_validity` | choices for enrolling |
 | `select.…_entry` | entry to delete |
 | `select.…_rule_for_the_person`, `…_rule_for_unknown_credentials` | approval rules |
-| `select.…_rule_for_the_entry`, `time.…_time_window_from` / `…_until`, `select.…_time_window_days` | rule and time window of the entry selected in *Entry* |
+| `select.…_rule_for_the_entry`, `time.…_time_window_from` / `…_until`, `select.…_time_window_days` (+ `…_2_…`, `…_3_…`) | rule and time window of the entry selected in *Entry* |
 | `switch.…_approve_unlocks` | approval on/off |
 | `select.…_fallback_without_home_assistant`, `select.…_fallback_for_the_entry` | fallback policy: all / only allowed entries / nobody, and per entry |
 | `text.…_new_person_optional` | optional: add a person by name |

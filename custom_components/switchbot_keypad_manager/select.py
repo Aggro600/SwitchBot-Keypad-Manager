@@ -11,7 +11,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     m = hass.data[DOMAIN][entry.entry_id]
     async_add_entities([Person(m), ChoiceSelect(m, "what", list(WHAT_OPTIONS), "mdi:fingerprint"),
                         ChoiceSelect(m, "validity", VALIDITY_OPTIONS, "mdi:calendar-clock"), Entry(m),
-                        PersonRule(m), UnknownRule(m), EntryRule(m), EntryDays(m),
+                        PersonRule(m), UnknownRule(m), EntryRule(m), EntryDays(m), EntryDays(m, 2), EntryDays(m, 3),
                         FallbackMode(m), EntryFallback(m)])
 
 
@@ -133,20 +133,23 @@ class EntryRule(KeypadEntity, SelectEntity):
 
 
 class EntryDays(KeypadEntity, SelectEntity):
-    """Days of the time window of the selected entry."""
+    """Days of time window n of the selected entry ('off' disables the window)."""
     _attr_icon = "mdi:calendar-week"
     _attr_options = DAYS_OPTIONS
 
-    def __init__(self, manager):
-        super().__init__(manager, "entry_days")
+    def __init__(self, manager, number: int = 1):
+        super().__init__(manager, "entry_days" if number == 1 else f"entry_days_{number}")
+        self.number = number
 
     @property
     def current_option(self):
         entry = self.manager.selected_entry()
-        return ((entry or {}).get("window") or {}).get("days", "all")
+        if entry is None:
+            return "all" if self.number == 1 else "off"
+        return self.manager.windows(entry)[self.number - 1]["days"]
 
     async def async_select_option(self, option: str) -> None:
-        await self.manager.set_entry_rule(days=option)
+        await self.manager.set_entry_rule(window=self.number, days=option)
 
 
 class FallbackMode(KeypadEntity, SelectEntity):

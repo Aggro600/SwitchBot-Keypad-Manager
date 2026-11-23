@@ -25,7 +25,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     BRIDGE_UNLOCK_EVENT, CONF_BRIDGE, CONF_KEYPAD_ENTRY, CONF_PERSONS, DOMAIN, FINGERPRINT, KINDS, NFC, NO_ENTRY, PIN,
-    RULE_OPTIONS, UNLOCKED_EVENT, VALIDITY_OPTIONS, WHAT_OPTIONS,
+    RULE_OPTIONS, UNLOCKED_EVENT, VALIDITY_OPTIONS, WHAT_OPTIONS, WINDOW_DEFAULT, WINDOWS, DAY_NAMES,
 )
 from .keypad import Keypad, KeypadError
 from .texts import detail_text, texts
@@ -237,13 +237,7 @@ class Manager:
         if rule == "weekdays":
             return now.weekday() < 5 and 7 <= now.hour < 19
         if rule == "time_window":
-            window = (entry or {}).get("window") or {}
-            days = window.get("days", "all")
-            if (days == "weekdays" and now.weekday() >= 5) or (days == "weekend" and now.weekday() < 5):
-                return False
-            start, end = window.get("from", "06:00"), window.get("until", "22:00")
-            current = now.strftime("%H:%M")
-            return start <= current < end if start <= end else (current >= start or current < end)
+            return any(self._window_active(w, now) for w in self.windows(entry))
         if rule == "someone_home":
             home = self.hass.states.get("zone.home")
             try:
@@ -251,6 +245,28 @@ class Manager:
             except ValueError:
                 return False
         return True
+
+    @staticmethod
+    def windows(entry: dict | None) -> list[dict]:
+        """Up to WINDOWS time windows of an entry (1.2/1.3 stored a single 'window')."""
+        if entry is None:
+            return []
+        stored = list(entry.get("windows") or ([entry["window"]] if entry.get("window") else []))
+        while len(stored) < WINDOWS:
+            stored.append(dict(WINDOW_DEFAULT) if not stored else {**WINDOW_DEFAULT, "days": "off"})
+        return stored[:WINDOWS]
+
+    @staticmethod
+    def _window_active(window: dict, now) -> bool:
+        days = window.get("days", "all")
+        weekday = now.weekday()
+        if days == "off" or (days == "weekdays" and weekday >= 5) or (days == "weekend" and weekday < 5):
+            return False
+        if days in DAY_NAMES and DAY_NAMES.index(days) != weekday:
+            return False
+        start, end = window.get("from", "06:00"), window.get("until", "22:00")
+        current = now.strftime("%H:%M")
+        return start <= current < end if start <= end else (current >= start or current < end)
 
     def selected_entry(self) -> dict | None:
         return next((e for e in self.entries if self.label(e) == self.choice["entry"]), None)
@@ -264,8 +280,12 @@ class Manager:
             entry["rule"] = changes.pop("rule")
         if "fallback" in changes:
             entry["fallback"] = changes.pop("fallback")
+        number = changes.pop("window", 1)
         if changes:
-            entry.setdefault("window", {"from": "06:00", "until": "22:00", "days": "all"}).update(changes)
+            windows = self.windows(entry)
+            windows[number - 1].update(changes)
+            entry["windows"] = windows
+            entry.pop("window", None)
         await self.save()
 
     def _answer_bridge(self, allowed: bool) -> None:

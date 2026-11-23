@@ -63,6 +63,18 @@ cards:
     name: Zeitfenster bis
   - entity: select.keypad_haustur_zeitfenster_tage
     name: Zeitfenster Tage
+  - entity: time.keypad_haustur_zeitfenster_2_von
+    name: Fenster 2 von
+  - entity: time.keypad_haustur_zeitfenster_2_bis
+    name: Fenster 2 bis
+  - entity: select.keypad_haustur_zeitfenster_2_tage
+    name: Fenster 2 Tage
+  - entity: time.keypad_haustur_zeitfenster_3_von
+    name: Fenster 3 von
+  - entity: time.keypad_haustur_zeitfenster_3_bis
+    name: Fenster 3 bis
+  - entity: select.keypad_haustur_zeitfenster_3_tage
+    name: Fenster 3 Tage
   - entity: select.keypad_haustur_notweg_fur_den_eintrag
     name: Notweg für Eintrag
   - entity: select.keypad_haustur_notweg_ohne_home_assistant
@@ -71,4 +83,5 @@ cards:
     name: Regel für unbekannte Zugänge
 - type: markdown
   content: "**Neu:** Wer + Was (+ Gültigkeit) → *Anlernen* → ans Keypad.  \n**Ändern:** Eintrag wählen (Wer/Was werden vorbelegt) → umstellen → *Ändern*.  \n**Löschen:** Eintrag wählen → *Löschen*.  \n\
-    **Aus der SwitchBot-App:** damit entsperren → Wer/Was → *Zuordnen*.  \n**Regel für Eintrag** geht vor der Regel der Person; *Nur Automation* öffnet nie."
+    **Aus der SwitchBot-App:** damit entsperren → Wer/Was → *Zuordnen*.  \n**Regel für Eintrag** geht vor der Regel der Person; *Nur Automation* öffnet nie.  \n**Zeitfenster:** bis zu 3 pro Eintrag, je\
+    \ mit eigenen Tagen (oder *Aus*); geöffnet wird, wenn **eines** passt."

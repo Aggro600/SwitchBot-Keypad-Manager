@@ -63,6 +63,18 @@ cards:
     name: Time window until
   - entity: select.front_door_time_window_days
     name: Time window days
+  - entity: time.front_door_time_window_2_from
+    name: Window 2 from
+  - entity: time.front_door_time_window_2_until
+    name: Window 2 until
+  - entity: select.front_door_time_window_2_days
+    name: Window 2 days
+  - entity: time.front_door_time_window_3_from
+    name: Window 3 from
+  - entity: time.front_door_time_window_3_until
+    name: Window 3 until
+  - entity: select.front_door_time_window_3_days
+    name: Window 3 days
   - entity: select.front_door_fallback_for_the_entry
     name: Fallback for the entry
   - entity: select.front_door_fallback_without_home_assistant
@@ -71,4 +83,5 @@ cards:
     name: Rule for unknown credentials
 - type: markdown
   content: "**Enroll:** Who + What (+ Validity) → *Enroll* → go to the keypad.  \n**Edit:** pick an entry (Who/What are pre-filled) → change → *Update*.  \n**Delete:** pick an entry → *Delete*.  \n**From\
-    \ the SwitchBot app:** unlock with it → Who/What → *Assign*.  \n**Rule for the entry** overrides the person rule; *Automation only* never opens."
+    \ the SwitchBot app:** unlock with it → Who/What → *Assign*.  \n**Rule for the entry** overrides the person rule; *Automation only* never opens.  \n**Time windows:** up to 3 per entry, each with its\
+    \ own days (or *Off*); the door opens if **one** matches."

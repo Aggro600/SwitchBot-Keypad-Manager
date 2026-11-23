@@ -112,7 +112,15 @@
         "state": {
           "all": "Alle Tage",
           "weekdays": "Werktags",
-          "weekend": "Wochenende"
+          "weekend": "Wochenende",
+          "mon": "Montag",
+          "tue": "Dienstag",
+          "wed": "Mittwoch",
+          "thu": "Donnerstag",
+          "fri": "Freitag",
+          "sat": "Samstag",
+          "sun": "Sonntag",
+          "off": "Aus"
         }
       },
       "fallback_mode": {
@@ -128,6 +136,38 @@
         "state": {
           "allowed": "Erlaubt",
           "blocked": "Nicht erlaubt"
+        }
+      },
+      "entry_days_2": {
+        "name": "Zeitfenster 2 Tage",
+        "state": {
+          "all": "Alle Tage",
+          "weekdays": "Werktags",
+          "weekend": "Wochenende",
+          "mon": "Montag",
+          "tue": "Dienstag",
+          "wed": "Mittwoch",
+          "thu": "Donnerstag",
+          "fri": "Freitag",
+          "sat": "Samstag",
+          "sun": "Sonntag",
+          "off": "Aus"
+        }
+      },
+      "entry_days_3": {
+        "name": "Zeitfenster 3 Tage",
+        "state": {
+          "all": "Alle Tage",
+          "weekdays": "Werktags",
+          "weekend": "Wochenende",
+          "mon": "Montag",
+          "tue": "Dienstag",
+          "wed": "Mittwoch",
+          "thu": "Donnerstag",
+          "fri": "Freitag",
+          "sat": "Samstag",
+          "sun": "Sonntag",
+          "off": "Aus"
         }
       }
     },
@@ -167,6 +207,18 @@
       },
       "entry_until": {
         "name": "Zeitfenster bis"
+      },
+      "entry_from_2": {
+        "name": "Zeitfenster 2 von"
+      },
+      "entry_until_2": {
+        "name": "Zeitfenster 2 bis"
+      },
+      "entry_from_3": {
+        "name": "Zeitfenster 3 von"
+      },
+      "entry_until_3": {
+        "name": "Zeitfenster 3 bis"
       }
     }
   },
