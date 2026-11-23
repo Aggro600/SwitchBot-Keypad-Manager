@@ -192,8 +192,9 @@ class Manager:
         match = next((e for e in self.entries if e["kind"] == kind and e["slot"] == slot), None)
         decision, rule = self.decide(match)
         allowed = decision == "open"
-        if self.approval:
-            self._answer_bridge(allowed)
+        # Always answer a bridge with approval: with "Approve unlocks" off every unlock is approved, otherwise the
+        # bridge would wait for its timeout and apply the fallback policy (possibly "nobody").
+        self._answer_bridge(allowed if self.approval else True, kind, slot)
         kind_text = self.t["kind"].get(kind, kind)
         if match:
             text = self.who(match)
@@ -265,8 +266,10 @@ class Manager:
         if days in DAY_NAMES and DAY_NAMES.index(days) != weekday:
             return False
         start, end = window.get("from", "06:00"), window.get("until", "22:00")
+        if start == end:          # e.g. 00:00–00:00 = the whole day, never "never"
+            return True
         current = now.strftime("%H:%M")
-        return start <= current < end if start <= end else (current >= start or current < end)
+        return start <= current < end if start < end else (current >= start or current < end)
 
     def selected_entry(self) -> dict | None:
         return next((e for e in self.entries if self.label(e) == self.choice["entry"]), None)
@@ -288,12 +291,16 @@ class Manager:
             entry.pop("window", None)
         await self.save()
 
-    def _answer_bridge(self, allowed: bool) -> None:
+    def _answer_bridge(self, allowed: bool, kind: str, slot: int) -> None:
+        """Approve or deny the waiting unlock; method/index let the bridge reject a late answer."""
         service = f"{self.entry.data[CONF_BRIDGE].replace('-', '_')}_{'approve' if allowed else 'deny'}_unlock"
         if not self.hass.services.has_service("esphome", service):
-            _LOGGER.warning("Approval is on, but esphome.%s does not exist – see the README (bridge approval)", service)
+            if self.approval:
+                _LOGGER.warning("Approval is on, but esphome.%s does not exist – see the README (bridge approval)",
+                                service)
             return
-        self.hass.async_create_task(self.hass.services.async_call("esphome", service, {}))
+        self.hass.async_create_task(self.hass.services.async_call(
+            "esphome", service, {"method": kind, "index": slot}))
 
     # ---------- workflows ----------
     def _period(self, validity: str):

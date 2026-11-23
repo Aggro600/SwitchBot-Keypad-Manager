@@ -51,7 +51,8 @@ Die Bridge-Konfiguration (Ereignis mit `bridge`, Freigabe mit `approval:` und de
 - **PIN-Codes** sind zufällig (6 Ziffern), werden einmal als Meldung angezeigt und **nirgends gespeichert**.
 - Was hier angelernt wird, kennt die **SwitchBot-App** nicht; die Namen liegen in Home Assistant.
 - **Handfläche:** Start und Status geprüft, Bestätigen/Löschen aus dem Gesichts-Schema abgeleitet.
-- Nach einem Neustart der Bridge muss manches Keypad einmal stromlos gemacht werden.
+- **Schlüssel oder anderen Zugang behalten:** Nach einem Neustart der Bridge (Stromausfall, Update) spricht manches Keypad
+  nicht mehr mit ihr, bis es einmal stromlos gemacht wird – so lange öffnet das Keypad gar nicht.
 - Finger so oft auflegen, bis das Keypad selbst fertig meldet; die Integration prüft danach die Zählung im Keypad.
 - Zu viele Fehlversuche sperren das Keypad eine Weile (Aussperr-Alarm der SwitchBot-Integration).
 - Zugänge aus der SwitchBot-App (nur zugeordnet) werden beim Löschen nur aus der Liste entfernt – im Keypad über die App löschen.

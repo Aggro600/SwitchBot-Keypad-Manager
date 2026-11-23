@@ -100,12 +100,18 @@ merged, use the branch `feat/home-assistant-approval` of [this fork](https://git
 ```yaml
 api:
   actions:
-    - action: approve_unlock
+    - action: approve_unlock          # method/index: a late answer never applies to another unlock
+      variables:
+        method: string
+        index: int
       then:
-        - switchbot_keypad_bridge.approve: keypad_bridge
+        - lambda: 'id(keypad_bridge).approve(method, index);'
     - action: deny_unlock
+      variables:
+        method: string
+        index: int
       then:
-        - switchbot_keypad_bridge.deny: keypad_bridge
+        - lambda: 'id(keypad_bridge).deny(method, index);'
 
 switchbot_keypad_bridge:
   id: keypad_bridge
@@ -127,7 +133,11 @@ api:
         - lambda: 'id(keypad_bridge).set_fallback(mode, allow);'
 ```
 
-Then switch on **Approve unlocks** and set the rules. While Home Assistant is connected, the bridge waits for its
+Then switch on **Approve unlocks** and set the rules. With the switch off the integration approves every unlock
+immediately, so a bridge with `approval:` never waits for its timeout.
+
+**Keep a key or another way in.** After a bridge reboot (power cut, firmware update) some keypads stop talking to
+the bridge until they are power-cycled – during that time the keypad cannot open the door at all. While Home Assistant is connected, the bridge waits for its
 answer (typically a few milliseconds); without a connection it relays immediately, exactly as without approval.
 The keypad always shows success – it does not wait for the lock.
 
