@@ -1,0 +1,360 @@
+"""SwitchBot Keypad Manager.
+
+Enroll and delete credentials (fingerprint, face, palm, PIN, NFC) on a SwitchBot Keypad Vision / Vision Pro
+from Home Assistant, assign them to people, show who unlocked how (events of the ESPHome keypad bridge) and,
+optionally, approve or deny each keypad unlock with per-person rules.
+"""
+from __future__ import annotations
+
+import asyncio
+from datetime import timedelta
+import logging
+import uuid
+
+import voluptuous as vol
+
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
+from homeassistant.core import Event, HomeAssistant, ServiceCall, SupportsResponse, callback
+from homeassistant.exceptions import HomeAssistantError
+import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.storage import Store
+from homeassistant.util import dt as dt_util
+
+from .const import (
+    BRIDGE_UNLOCK_EVENT, CONF_BRIDGE, CONF_KEYPAD_ENTRY, CONF_PERSONS, DOMAIN, FINGERPRINT, KINDS, NFC, NO_ENTRY, PIN,
+    RULE_OPTIONS, UNLOCKED_EVENT, VALIDITY_OPTIONS, WHAT_OPTIONS,
+)
+from .keypad import Keypad, KeypadError
+from .texts import detail_text, texts
+
+_LOGGER = logging.getLogger(__name__)
+PLATFORMS = [Platform.BUTTON, Platform.SELECT, Platform.SENSOR, Platform.SWITCH, Platform.TEXT]
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+SIGNAL = f"{DOMAIN}_updated_{{}}"
+STORAGE_VERSION = 1
+
+
+class Manager:
+    """State and workflows of one keypad (one config entry)."""
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        self.hass = hass
+        self.entry = entry
+        self.keypad = Keypad(hass, entry.data[CONF_KEYPAD_ENTRY])
+        self.store = Store(hass, STORAGE_VERSION, f"{DOMAIN}.{entry.entry_id}")
+        self.entries: list[dict] = []
+        self.extra_persons: list[str] = []
+        self.counts: dict[str, int] = {}
+        self.last: dict = {}
+        self.rules: dict[str, str] = {}          # person -> rule
+        self.unknown_rule = "always"              # rule for credentials without a person
+        self.approval = False                     # approve/deny unlocks via the bridge
+        self.unassigned: dict | None = None       # last unlock without a matching entry
+        self.status_key, self.status_args = "ready", {}
+        self.choice = {"person": None, "what": "thumb_right", "validity": "permanent", "entry": NO_ENTRY}
+        self.running: asyncio.Task | None = None
+        self.cancel_event = asyncio.Event()
+
+    @property
+    def t(self) -> dict:
+        return texts(self.hass.config.language)
+
+    # ---------- storage ----------
+    async def load(self) -> None:
+        data = await self.store.async_load() or {}
+        self.entries = data.get("entries", [])
+        self.extra_persons = data.get("persons", [])
+        self.last = data.get("last", {})
+        self.counts = data.get("counts", {})
+        self.rules = data.get("rules", {})
+        self.unknown_rule = data.get("unknown_rule", "always")
+        self.approval = data.get("approval", False)
+
+    async def save(self) -> None:
+        await self.store.async_save({
+            "entries": self.entries, "persons": self.extra_persons, "last": self.last, "counts": self.counts,
+            "rules": self.rules, "unknown_rule": self.unknown_rule, "approval": self.approval})
+        self.notify_entities()
+
+    @callback
+    def notify_entities(self) -> None:
+        async_dispatcher_send(self.hass, SIGNAL.format(self.entry.entry_id))
+
+    @staticmethod
+    def new_entry(kind, slot, person, detail, *, source="home_assistant", valid_from=None, valid_until=None) -> dict:
+        return {"id": uuid.uuid4().hex[:8], "kind": kind, "slot": slot, "person": person, "detail": detail,
+                "source": source, "created": dt_util.now().isoformat(timespec="minutes"),
+                "valid_from": valid_from, "valid_until": valid_until}
+
+    # ---------- presentation ----------
+    def who(self, entry: dict) -> str:
+        detail = detail_text(self.t, entry.get("detail") or "")
+        return f"{entry['person']} ({detail})" if detail else entry["person"]
+
+    def label(self, entry: dict) -> str:
+        until = ""
+        if entry.get("valid_until"):
+            until = f", {self.t['until']} {dt_util.parse_datetime(entry['valid_until']).strftime('%d.%m. %H:%M')}"
+        return f"{self.who(entry)} – {self.t['kind'][entry['kind']]} {entry['slot']}{until}"
+
+    def persons(self) -> list[str]:
+        names = []
+        for entity_id in self.entry.options.get(CONF_PERSONS, self.entry.data.get(CONF_PERSONS, [])):
+            if (state := self.hass.states.get(entity_id)) is not None:
+                names.append(state.attributes.get("friendly_name") or entity_id.split(".", 1)[1])
+        for name in self.extra_persons + [e["person"] for e in self.entries]:
+            if name and name not in names:
+                names.append(name)
+        return names or ["Guest"]
+
+    def current_person(self) -> str:
+        person = self.choice["person"]
+        return person if person in self.persons() else self.persons()[0]
+
+    def unassigned_counts(self) -> dict[str, int]:
+        """Credentials on the keypad without an entry in the list (e.g. created in the SwitchBot app)."""
+        result = {}
+        for kind in KINDS:
+            if kind in self.counts:
+                diff = self.counts[kind] - sum(1 for e in self.entries if e["kind"] == kind)
+                if diff:
+                    result[self.t["kind"][kind]] = diff
+        return result
+
+    @property
+    def status(self) -> str:
+        text = self.t.get(self.status_key, self.status_key)
+        try:
+            return text.format(**self.status_args)
+        except (KeyError, IndexError):
+            return text
+
+    async def set_status(self, key: str, **args) -> None:
+        self.status_key, self.status_args = key, args
+        self.notify_entities()
+
+    # ---------- unlock events from the keypad bridge ----------
+    @callback
+    def handle_bridge_event(self, event: Event) -> None:
+        data = event.data
+        if data.get("bridge") != self.entry.data[CONF_BRIDGE]:
+            return
+        kind = str(data.get("method", ""))
+        try:
+            slot = int(data.get("index"))
+        except (TypeError, ValueError):
+            return
+        match = next((e for e in self.entries if e["kind"] == kind and e["slot"] == slot), None)
+        allowed = self.allowed(match["person"] if match else None)
+        if self.approval:
+            self._answer_bridge(allowed)
+        kind_text = self.t["kind"].get(kind, kind)
+        if match:
+            text = self.who(match)
+            self.unassigned = None
+        else:
+            text = f"{self.t['unknown']} ({kind_text} {slot})"
+            self.unassigned = {"kind": kind, "slot": slot}
+        self.last = {"person": match["person"] if match else None, "detail": (match.get("detail") or "") if match else "",
+                     "text": text, "kind": kind, "kind_text": kind_text, "slot": slot,
+                     "allowed": allowed if self.approval else None, "time": dt_util.now().isoformat()}
+        self.hass.bus.async_fire(UNLOCKED_EVENT, {"keypad": self.entry.title, **self.last})
+        self.hass.async_create_task(self.save())
+        if "logbook" in self.hass.config.components:
+            message = f"{text} {self.t['via']} {kind_text}"
+            if self.approval and not allowed:
+                message += f" ({self.t['denied']})"
+            self.hass.async_create_task(self.hass.services.async_call(
+                "logbook", "log", {"name": self.entry.title, "message": message}))
+
+    # ---------- approval rules ----------
+    def allowed(self, person: str | None) -> bool:
+        rule = self.rules.get(person, "always") if person else self.unknown_rule
+        now = dt_util.now()
+        if rule == "blocked":
+            return False
+        if rule == "daytime":
+            return 6 <= now.hour < 22
+        if rule == "weekdays":
+            return now.weekday() < 5 and 7 <= now.hour < 19
+        if rule == "someone_home":
+            home = self.hass.states.get("zone.home")
+            try:
+                return home is not None and int(float(home.state)) > 0
+            except ValueError:
+                return False
+        return True
+
+    def _answer_bridge(self, allowed: bool) -> None:
+        service = f"{self.entry.data[CONF_BRIDGE].replace('-', '_')}_{'approve' if allowed else 'deny'}_unlock"
+        if not self.hass.services.has_service("esphome", service):
+            _LOGGER.warning("Approval is on, but esphome.%s does not exist – see the README (bridge approval)", service)
+            return
+        self.hass.async_create_task(self.hass.services.async_call("esphome", service, {}))
+
+    # ---------- workflows ----------
+    def _period(self, validity: str):
+        now = dt_util.now()
+        end = {"today": now.replace(hour=23, minute=59, second=59), "24h": now + timedelta(hours=24),
+               "1w": now + timedelta(days=7), "1m": now + timedelta(days=30)}.get(validity)
+        return (now, end) if end else (None, None)
+
+    async def enroll(self, person: str, what: str, validity: str = "permanent") -> dict:
+        if self.running and not self.running.done():
+            raise HomeAssistantError("An enrollment is already running")
+        if not person:
+            raise HomeAssistantError("Select a person first")
+        if what not in WHAT_OPTIONS:
+            raise HomeAssistantError(f"Unknown option {what}")
+        kind, detail = WHAT_OPTIONS[what]
+        start, end = self._period(validity)
+        once = validity == "once"
+        if once and kind != PIN:
+            raise HomeAssistantError("'Once' is only available for PIN codes")
+        if end and kind not in (PIN, FINGERPRINT, NFC):
+            raise HomeAssistantError("Time limits are only available for PIN, fingerprint and NFC card")
+        self.cancel_event.clear()
+        self.running = asyncio.current_task()
+        await self.set_status("starting", who=person, what=self.t["kind"][kind])
+        try:
+            result = await self.keypad.enroll(
+                kind, valid_from=start.timestamp() if end else None, valid_until=end.timestamp() if end else None,
+                once=once, status=lambda key: self.set_status(key), cancel=self.cancel_event)
+        except KeypadError as err:
+            await self.set_status("error", err=str(err))
+            raise
+        finally:
+            self.running = None
+        # an outdated entry for the same slot is replaced
+        self.entries = [e for e in self.entries if not (e["kind"] == kind and e["slot"] == result["slot"])]
+        entry = self.new_entry(kind, result["slot"], person, detail,
+                               valid_from=start.isoformat() if end else None, valid_until=end.isoformat() if end else None)
+        self.entries.append(entry)
+        if person not in self.persons():
+            self.extra_persons.append(person)
+        await self._refresh_counts()
+        await self.set_status("done", entry=self.label(entry))
+        message = self.t["enrolled"].format(entry=self.label(entry))
+        if "pin" in result:
+            message += "\n\n" + self.t["pin_note"].format(pin=result["pin"])
+        self._notify(message)
+        return {"entry": entry, **({"pin": result["pin"]} if "pin" in result else {})}
+
+    async def delete(self, entry_id: str) -> None:
+        entry = next((e for e in self.entries if e["id"] == entry_id), None)
+        if entry is None:
+            raise HomeAssistantError("Entry not found")
+        await self.set_status("deleting", entry=self.label(entry))
+        try:
+            await self.keypad.delete(entry["kind"], entry["slot"])
+        except KeypadError as err:
+            await self.set_status("error", err=str(err))
+            raise
+        self.entries.remove(entry)
+        self.choice["entry"] = NO_ENTRY
+        await self._refresh_counts()
+        await self.set_status("deleted", entry=self.label(entry))
+        self._notify(self.t["deleted_note"].format(entry=self.label(entry)))
+
+    async def assign_last(self, person: str, what: str) -> None:
+        """Assign the last unknown unlock (e.g. a credential from the SwitchBot app) – no keypad command."""
+        if not self.unassigned:
+            raise HomeAssistantError("No unknown unlock – unlock with the credential first")
+        if not person:
+            raise HomeAssistantError("Select a person first")
+        kind, slot = self.unassigned["kind"], self.unassigned["slot"]
+        what_kind, detail = WHAT_OPTIONS.get(what, (kind, ""))
+        if what_kind != kind:
+            detail = ""
+        entry = self.new_entry(kind, slot, person, detail, source="assigned")
+        self.entries.append(entry)
+        self.unassigned = None
+        self.last.update({"text": self.who(entry), "person": person, "detail": detail})
+        await self.save()
+        await self.set_status("assigned", entry=self.label(entry))
+
+    async def sync(self) -> None:
+        await self.set_status("querying")
+        try:
+            self.counts = await self.keypad.counts()
+        except KeypadError as err:
+            await self.set_status("error", err=str(err))
+            raise
+        await self.save()
+        diff = self.unassigned_counts()
+        if diff:
+            await self.set_status("sync", diff=", ".join(f"{k} {v:+d}" for k, v in diff.items()))
+        else:
+            await self.set_status("sync_ok")
+
+    async def _refresh_counts(self) -> None:
+        try:
+            self.counts = await self.keypad.counts()
+        except KeypadError:
+            pass
+        await self.save()
+
+    def cancel(self) -> None:
+        self.cancel_event.set()
+
+    def _notify(self, message: str) -> None:
+        self.hass.async_create_task(self.hass.services.async_call("persistent_notification", "create", {
+            "notification_id": f"{DOMAIN}_{self.entry.entry_id}", "title": self.entry.title, "message": message}))
+
+
+def _manager(hass: HomeAssistant, call: ServiceCall) -> Manager:
+    managers: dict[str, Manager] = hass.data.get(DOMAIN, {})
+    entry_id = call.data.get("config_entry_id")
+    if entry_id:
+        if entry_id not in managers:
+            raise HomeAssistantError("Keypad not found")
+        return managers[entry_id]
+    if len(managers) != 1:
+        raise HomeAssistantError("Several keypads – please pass config_entry_id")
+    return next(iter(managers.values()))
+
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    async def enroll(call: ServiceCall):
+        return await _manager(hass, call).enroll(call.data["person"], call.data["what"], call.data["validity"])
+
+    async def delete(call: ServiceCall) -> None:
+        await _manager(hass, call).delete(call.data["entry_id"])
+
+    async def sync(call: ServiceCall) -> None:
+        await _manager(hass, call).sync()
+
+    base = {vol.Optional("config_entry_id"): cv.string}
+    hass.services.async_register(DOMAIN, "enroll", enroll, schema=vol.Schema({
+        **base, vol.Required("person"): cv.string, vol.Required("what"): vol.In(list(WHAT_OPTIONS)),
+        vol.Optional("validity", default="permanent"): vol.In(VALIDITY_OPTIONS)}),
+        supports_response=SupportsResponse.OPTIONAL)
+    hass.services.async_register(DOMAIN, "delete", delete, schema=vol.Schema({**base, vol.Required("entry_id"): cv.string}))
+    hass.services.async_register(DOMAIN, "sync", sync, schema=vol.Schema(base))
+    return True
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    manager = Manager(hass, entry)
+    await manager.load()
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = manager
+    entry.async_on_unload(hass.bus.async_listen(BRIDGE_UNLOCK_EVENT, manager.handle_bridge_event))
+    entry.async_on_unload(entry.add_update_listener(_reload))
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    return True
+
+
+async def _reload(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    await hass.config_entries.async_reload(entry.entry_id)
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unloaded:
+        hass.data[DOMAIN].pop(entry.entry_id).cancel()
+    return unloaded
+
+
+__all__ = ["Manager", "RULE_OPTIONS", "SIGNAL"]

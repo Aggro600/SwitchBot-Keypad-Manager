@@ -1,0 +1,21 @@
+{
+  "domain": "switchbot_keypad_manager",
+  "name": "SwitchBot Keypad Manager",
+  "after_dependencies": [
+    "esphome",
+    "logbook"
+  ],
+  "codeowners": [
+    "@Aggro600"
+  ],
+  "config_flow": true,
+  "dependencies": [
+    "switchbot"
+  ],
+  "documentation": "https://github.com/Aggro600/SwitchBot-Keypad-Manager",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/Aggro600/SwitchBot-Keypad-Manager/issues",
+  "requirements": [],
+  "version": "1.0.0"
+}

@@ -1,0 +1,206 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "SwitchBot Keypad Manager",
+        "description": "Pick the keypad from the SwitchBot integration and the ESPHome keypad bridge whose events tell who unlocked.",
+        "data": {
+          "keypad_entry": "Keypad",
+          "bridge": "Keypad bridge (ESPHome device)",
+          "name": "Name (optional)",
+          "persons": "People in the selection"
+        }
+      }
+    },
+    "abort": {
+      "no_keypad": "No Keypad Vision found in the SwitchBot integration.",
+      "already_configured": "This keypad is already set up."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "SwitchBot Keypad Manager",
+        "data": {
+          "persons": "People in the selection"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "last_unlock": {
+        "name": "Last unlock"
+      },
+      "credentials": {
+        "name": "Credentials"
+      },
+      "status": {
+        "name": "Status"
+      }
+    },
+    "select": {
+      "person": {
+        "name": "Person"
+      },
+      "what": {
+        "name": "What",
+        "state": {
+          "thumb_right": "Thumb (right)",
+          "index_right": "Index finger (right)",
+          "middle_right": "Middle finger (right)",
+          "ring_right": "Ring finger (right)",
+          "little_right": "Little finger (right)",
+          "thumb_left": "Thumb (left)",
+          "index_left": "Index finger (left)",
+          "middle_left": "Middle finger (left)",
+          "ring_left": "Ring finger (left)",
+          "little_left": "Little finger (left)",
+          "face": "Face",
+          "palm": "Palm",
+          "pin_random": "PIN code (random)",
+          "nfc_card": "NFC card"
+        }
+      },
+      "validity": {
+        "name": "Validity",
+        "state": {
+          "permanent": "Permanent",
+          "today": "Today",
+          "24h": "24 hours",
+          "1w": "1 week",
+          "1m": "1 month",
+          "once": "Once (PIN only)"
+        }
+      },
+      "entry": {
+        "name": "Entry",
+        "state": {
+          "none": "–"
+        }
+      },
+      "person_rule": {
+        "name": "Rule for the person",
+        "state": {
+          "always": "Always",
+          "blocked": "Blocked",
+          "daytime": "Only 6:00–22:00",
+          "weekdays": "Only weekdays 7:00–19:00",
+          "someone_home": "Only when someone is home"
+        }
+      },
+      "unknown_rule": {
+        "name": "Rule for unknown credentials",
+        "state": {
+          "always": "Always",
+          "blocked": "Blocked"
+        }
+      }
+    },
+    "button": {
+      "enroll": {
+        "name": "Start enrollment"
+      },
+      "delete": {
+        "name": "Delete entry"
+      },
+      "assign_last": {
+        "name": "Assign last unlock"
+      },
+      "sync": {
+        "name": "Sync with keypad"
+      },
+      "cancel": {
+        "name": "Cancel"
+      }
+    },
+    "switch": {
+      "approval": {
+        "name": "Approve unlocks"
+      }
+    },
+    "text": {
+      "new_person": {
+        "name": "New person (optional)"
+      }
+    }
+  },
+  "services": {
+    "enroll": {
+      "name": "Enroll credential",
+      "description": "Starts enrollment on the keypad (place finger, look into the camera, show palm, hold card) or creates a random PIN.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Keypad",
+          "description": "Only needed with several keypads."
+        },
+        "person": {
+          "name": "Person",
+          "description": "Name of the person."
+        },
+        "what": {
+          "name": "What",
+          "description": "Finger, face, palm, PIN or NFC card."
+        },
+        "validity": {
+          "name": "Validity",
+          "description": "Time limit (PIN, fingerprint, NFC)."
+        }
+      }
+    },
+    "delete": {
+      "name": "Delete credential",
+      "description": "Deletes a credential on the keypad and from the list.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Keypad",
+          "description": "Only needed with several keypads."
+        },
+        "entry_id": {
+          "name": "Entry",
+          "description": "ID from the 'entries' attribute of the Credentials sensor."
+        }
+      }
+    },
+    "sync": {
+      "name": "Sync with keypad",
+      "description": "Reads the number of credentials stored on the keypad.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Keypad",
+          "description": "Only needed with several keypads."
+        }
+      }
+    }
+  },
+  "selector": {
+    "what": {
+      "options": {
+        "thumb_right": "Thumb (right)",
+        "index_right": "Index finger (right)",
+        "middle_right": "Middle finger (right)",
+        "ring_right": "Ring finger (right)",
+        "little_right": "Little finger (right)",
+        "thumb_left": "Thumb (left)",
+        "index_left": "Index finger (left)",
+        "middle_left": "Middle finger (left)",
+        "ring_left": "Ring finger (left)",
+        "little_left": "Little finger (left)",
+        "face": "Face",
+        "palm": "Palm",
+        "pin_random": "PIN code (random)",
+        "nfc_card": "NFC card"
+      }
+    },
+    "validity": {
+      "options": {
+        "permanent": "Permanent",
+        "today": "Today",
+        "24h": "24 hours",
+        "1w": "1 week",
+        "1m": "1 month",
+        "once": "Once (PIN only)"
+      }
+    }
+  }
+}

@@ -1,0 +1,85 @@
+# Example sections view (German UI, keypad named "Front door"; entity IDs depend on your language and keypad name)
+type: sections
+title: Keypad
+path: keypad
+sections:
+  - type: grid
+    cards:
+      - type: heading
+        heading: Who unlocked
+      - type: tile
+        entity: sensor.front_door_last_unlock
+        grid_options: {columns: 12}
+      - type: tile
+        entity: sensor.front_door_status
+        grid_options: {columns: 12}
+      - type: heading
+        heading: Enroll
+        heading_style: subtitle
+      - type: tile
+        entity: select.front_door_person
+        features: [{type: select-options}]
+        features_position: bottom
+        grid_options: {columns: 12}
+      - type: tile
+        entity: text.front_door_new_person_optional
+        grid_options: {columns: 12}
+      - type: tile
+        entity: select.front_door_what
+        features: [{type: select-options}]
+        features_position: bottom
+        grid_options: {columns: 12}
+      - type: tile
+        entity: select.front_door_validity
+        features: [{type: select-options}]
+        features_position: bottom
+        grid_options: {columns: 12}
+      - type: tile
+        entity: button.front_door_start_enrollment
+        color: green
+        tap_action: {action: toggle}
+      - type: tile
+        entity: button.front_door_cancel
+        tap_action: {action: toggle}
+  - type: grid
+    cards:
+      - type: heading
+        heading: Credentials
+      - type: markdown
+        content: >-
+          {% set s = 'sensor.front_door_credentials' %}{{ (state_attr(s,'list') or 'No entries yet.').replace('\n','  \n') }}
+          {% set o = state_attr(s,'unassigned') %}{% if o %}\n\n**Without a name on the keypad:**
+          {% for k,v in o.items() %}{{ k }} {{ v }}{{ ', ' if not loop.last }}{% endfor %}{% endif %}
+      - type: tile
+        entity: select.front_door_entry
+        features: [{type: select-options}]
+        features_position: bottom
+        grid_options: {columns: 12}
+      - type: tile
+        entity: button.front_door_delete_entry
+        color: red
+        tap_action: {action: toggle}
+      - type: tile
+        entity: button.front_door_sync_with_keypad
+        tap_action: {action: toggle}
+      - type: tile
+        entity: button.front_door_assign_last_unlock
+        tap_action: {action: toggle}
+        grid_options: {columns: 12}
+  - type: grid
+    cards:
+      - type: heading
+        heading: Approval
+      - type: tile
+        entity: switch.front_door_approve_unlocks
+        grid_options: {columns: 12}
+      - type: tile
+        entity: select.front_door_rule_for_the_person
+        features: [{type: select-options}]
+        features_position: bottom
+        grid_options: {columns: 12}
+      - type: tile
+        entity: select.front_door_rule_for_unknown_credentials
+        features: [{type: select-options}]
+        features_position: bottom
+        grid_options: {columns: 12}

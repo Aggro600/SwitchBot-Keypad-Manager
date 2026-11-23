@@ -1,0 +1,86 @@
+# Example automations for SwitchBot Keypad Manager
+# Event switchbot_keypad_manager_unlocked – data: keypad, person, detail (e.g. thumb_right), text,
+# kind (pin|nfc|fingerprint|face|palm), kind_text, slot, allowed (true/false, only with approval on), time
+
+# ---------- Way 1 (recommended): one automation, one trigger, decide with "choose" ----------
+- alias: "Keypad unlock – hallway light blinks"
+  mode: single
+  triggers:
+    - trigger: event
+      event_type: switchbot_keypad_manager_unlocked
+  actions:
+    - action: scene.create
+      data: {scene_id: hallway_before, snapshot_entities: [light.hallway]}
+    - choose:
+        - conditions: "{{ trigger.event.data.allowed == false }}"        # denied by a rule -> 2x red
+          sequence:
+            - repeat:
+                count: 2
+                sequence: &blink_red
+                  - action: light.turn_on
+                    target: {entity_id: light.hallway}
+                    data: {brightness_pct: 100, rgb_color: [255, 0, 0], transition: 0}
+                  - delay: {milliseconds: 500}
+                  - action: light.turn_off
+                    target: {entity_id: light.hallway}
+                    data: {transition: 0}
+                  - delay: {milliseconds: 500}
+        - conditions: >-
+            {{ trigger.event.data.person == 'Anna' and trigger.event.data.kind == 'fingerprint'
+               and trigger.event.data.detail == 'thumb_right' }}                # Anna's right thumb -> 3x green
+          sequence:
+            - repeat:
+                count: 3
+                sequence:
+                  - action: light.turn_on
+                    target: {entity_id: light.hallway}
+                    data: {brightness_pct: 100, rgb_color: [0, 255, 0], transition: 0}
+                  - delay: {milliseconds: 500}
+                  - action: light.turn_off
+                    target: {entity_id: light.hallway}
+                    data: {transition: 0}
+                  - delay: {milliseconds: 500}
+      default:                                                             # any other keypad unlock -> 1x
+        - action: light.turn_on
+          target: {entity_id: light.hallway}
+          data: {brightness_pct: 100, transition: 0}
+        - delay: {milliseconds: 500}
+        - action: light.turn_off
+          target: {entity_id: light.hallway}
+          data: {transition: 0}
+    - action: scene.turn_on
+      target: {entity_id: scene.hallway_before}
+      data: {transition: 0}
+
+# ---------- Way 2: one automation per case (each with its own trigger) ----------
+# Note: with both enabled, Anna's thumb runs both automations.
+- alias: "Anna's right thumb – light blinks green"
+  mode: single
+  triggers:
+    - trigger: event
+      event_type: switchbot_keypad_manager_unlocked
+      event_data: {person: Anna, kind: fingerprint, detail: thumb_right}
+  actions:
+    - repeat:
+        count: 3
+        sequence:
+          - action: light.turn_on
+            target: {entity_id: light.hallway}
+            data: {rgb_color: [0, 255, 0], transition: 0}
+          - delay: {milliseconds: 500}
+          - action: light.turn_off
+            target: {entity_id: light.hallway}
+          - delay: {milliseconds: 500}
+
+- alias: "Any keypad unlock – light blinks"
+  mode: single
+  triggers:
+    - trigger: event
+      event_type: switchbot_keypad_manager_unlocked
+  actions:
+    - action: light.turn_on
+      target: {entity_id: light.hallway}
+      data: {transition: 0}
+    - delay: {milliseconds: 500}
+    - action: light.turn_off
+      target: {entity_id: light.hallway}

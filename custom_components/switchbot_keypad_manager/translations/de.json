@@ -1,0 +1,206 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "SwitchBot Keypad Manager einrichten",
+        "description": "Keypad aus der SwitchBot-Integration und die ESPHome-Keypad-Bridge wählen, deren Ereignisse zeigen, wer entsperrt hat.",
+        "data": {
+          "keypad_entry": "Keypad",
+          "bridge": "Keypad-Bridge (ESPHome-Gerät)",
+          "name": "Name (optional)",
+          "persons": "Personen in der Auswahl"
+        }
+      }
+    },
+    "abort": {
+      "no_keypad": "Kein Keypad Vision in der SwitchBot-Integration gefunden.",
+      "already_configured": "Dieses Keypad ist schon eingerichtet."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "SwitchBot Keypad Manager",
+        "data": {
+          "persons": "Personen in der Auswahl"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "last_unlock": {
+        "name": "Zuletzt entsperrt"
+      },
+      "credentials": {
+        "name": "Zugänge"
+      },
+      "status": {
+        "name": "Status"
+      }
+    },
+    "select": {
+      "person": {
+        "name": "Person"
+      },
+      "what": {
+        "name": "Was",
+        "state": {
+          "thumb_right": "Daumen rechts",
+          "index_right": "Zeigefinger rechts",
+          "middle_right": "Mittelfinger rechts",
+          "ring_right": "Ringfinger rechts",
+          "little_right": "kleiner Finger rechts",
+          "thumb_left": "Daumen links",
+          "index_left": "Zeigefinger links",
+          "middle_left": "Mittelfinger links",
+          "ring_left": "Ringfinger links",
+          "little_left": "kleiner Finger links",
+          "face": "Gesicht",
+          "palm": "Handfläche",
+          "pin_random": "PIN-Code (zufällig)",
+          "nfc_card": "NFC-Karte"
+        }
+      },
+      "validity": {
+        "name": "Gültigkeit",
+        "state": {
+          "permanent": "Dauerhaft",
+          "today": "Heute",
+          "24h": "24 Stunden",
+          "1w": "1 Woche",
+          "1m": "1 Monat",
+          "once": "Einmalig (nur PIN)"
+        }
+      },
+      "entry": {
+        "name": "Eintrag",
+        "state": {
+          "none": "–"
+        }
+      },
+      "person_rule": {
+        "name": "Regel für die Person",
+        "state": {
+          "always": "Immer",
+          "blocked": "Gesperrt",
+          "daytime": "Nur 6–22 Uhr",
+          "weekdays": "Nur werktags 7–19 Uhr",
+          "someone_home": "Nur wenn jemand zu Hause ist"
+        }
+      },
+      "unknown_rule": {
+        "name": "Regel für unbekannte Zugänge",
+        "state": {
+          "always": "Immer",
+          "blocked": "Gesperrt"
+        }
+      }
+    },
+    "button": {
+      "enroll": {
+        "name": "Anlernen starten"
+      },
+      "delete": {
+        "name": "Eintrag löschen"
+      },
+      "assign_last": {
+        "name": "Letzte Entsperrung zuordnen"
+      },
+      "sync": {
+        "name": "Mit Keypad abgleichen"
+      },
+      "cancel": {
+        "name": "Abbrechen"
+      }
+    },
+    "switch": {
+      "approval": {
+        "name": "Entsperren freigeben"
+      }
+    },
+    "text": {
+      "new_person": {
+        "name": "Neue Person (optional)"
+      }
+    }
+  },
+  "services": {
+    "enroll": {
+      "name": "Zugang anlernen",
+      "description": "Startet das Anlernen am Keypad (Finger auflegen, in die Kamera schauen, Handfläche zeigen, Karte halten) oder legt einen zufälligen PIN an.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Keypad",
+          "description": "Nur bei mehreren Keypads nötig."
+        },
+        "person": {
+          "name": "Person",
+          "description": "Name der Person."
+        },
+        "what": {
+          "name": "Was",
+          "description": "Finger, Gesicht, Handfläche, PIN oder NFC-Karte."
+        },
+        "validity": {
+          "name": "Gültigkeit",
+          "description": "Befristung (PIN, Finger, NFC)."
+        }
+      }
+    },
+    "delete": {
+      "name": "Zugang löschen",
+      "description": "Löscht einen Zugang im Keypad und in der Liste.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Keypad",
+          "description": "Nur bei mehreren Keypads nötig."
+        },
+        "entry_id": {
+          "name": "Eintrag",
+          "description": "ID aus dem Attribut 'entries' des Sensors Zugänge."
+        }
+      }
+    },
+    "sync": {
+      "name": "Mit Keypad abgleichen",
+      "description": "Liest die Anzahl der Zugänge im Keypad.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Keypad",
+          "description": "Nur bei mehreren Keypads nötig."
+        }
+      }
+    }
+  },
+  "selector": {
+    "what": {
+      "options": {
+        "thumb_right": "Daumen rechts",
+        "index_right": "Zeigefinger rechts",
+        "middle_right": "Mittelfinger rechts",
+        "ring_right": "Ringfinger rechts",
+        "little_right": "kleiner Finger rechts",
+        "thumb_left": "Daumen links",
+        "index_left": "Zeigefinger links",
+        "middle_left": "Mittelfinger links",
+        "ring_left": "Ringfinger links",
+        "little_left": "kleiner Finger links",
+        "face": "Gesicht",
+        "palm": "Handfläche",
+        "pin_random": "PIN-Code (zufällig)",
+        "nfc_card": "NFC-Karte"
+      }
+    },
+    "validity": {
+      "options": {
+        "permanent": "Dauerhaft",
+        "today": "Heute",
+        "24h": "24 Stunden",
+        "1w": "1 Woche",
+        "1m": "1 Monat",
+        "once": "Einmalig (nur PIN)"
+      }
+    }
+  }
+}

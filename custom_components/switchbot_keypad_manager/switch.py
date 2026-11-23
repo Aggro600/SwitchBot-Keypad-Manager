@@ -1,0 +1,30 @@
+"""Switch: approve/deny keypad unlocks through the bridge."""
+from __future__ import annotations
+
+from homeassistant.components.switch import SwitchEntity
+
+from .const import DOMAIN
+from .entity import KeypadEntity
+
+
+async def async_setup_entry(hass, entry, async_add_entities):
+    async_add_entities([Approval(hass.data[DOMAIN][entry.entry_id])])
+
+
+class Approval(KeypadEntity, SwitchEntity):
+    _attr_icon = "mdi:shield-lock"
+
+    def __init__(self, manager):
+        super().__init__(manager, "approval")
+
+    @property
+    def is_on(self):
+        return self.manager.approval
+
+    async def async_turn_on(self, **kwargs) -> None:
+        self.manager.approval = True
+        await self.manager.save()
+
+    async def async_turn_off(self, **kwargs) -> None:
+        self.manager.approval = False
+        await self.manager.save()

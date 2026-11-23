@@ -1,0 +1,57 @@
+# SwitchBot Keypad Manager
+
+**Die Benutzer eines SwitchBot Keypad Vision / Vision Pro direkt aus Home Assistant verwalten** – Fingerabdrücke,
+Gesichter, Handflächen, PIN-Codes und NFC-Karten anlernen und löschen, sehen *wer* *wie* entsperrt hat, und auf Wunsch
+**jedes Entsperren am Keypad von Home Assistant freigeben oder ablehnen** lassen – mit Notweg, wenn Home Assistant
+nicht erreichbar ist.
+
+[English](README.md)
+
+## Was es kann
+
+- **Anlernen am Keypad aus Home Assistant:** Person und *Was* wählen (10 Finger, Gesicht, Handfläche, zufälliger PIN,
+  NFC-Karte), *Anlernen starten*, ans Keypad gehen. Platz und Name werden automatisch gespeichert.
+- **Löschen:** Der Zugang ist danach im Keypad *und* in der Liste weg.
+- **Befristung** für Finger, PIN und Karte (heute, 24 Stunden, 1 Woche, 1 Monat) und einmalige PINs.
+- **Wer hat wie entsperrt:** „Anna (Daumen rechts) per Fingerabdruck · 08:15“ als Sensor, im Logbuch und als Ereignis
+  für Automationen.
+- **Freigabe mit Notweg (optional):** pro Person *Immer*, *Gesperrt*, *Nur 6–22 Uhr*, *Nur werktags 7–19 Uhr*,
+  *Nur wenn jemand zu Hause ist*. Ist Home Assistant nicht verbunden oder antwortet nicht binnen 2 s, öffnet die
+  Bridge selbst – die Tür hängt nie an Home Assistant.
+- **Abgleich:** vergleicht die Anzahl im Keypad mit der Liste und zeigt Zugänge ohne Namen (z. B. aus der
+  SwitchBot-App). Zuordnen: einmal damit entsperren, *Letzte Entsperrung zuordnen*.
+- **Nur Auswahl:** alles über Auswahllisten und Knöpfe; Freitext nur optional (neue Person).
+- Mehrere Keypads: Integration je Keypad einmal hinzufügen.
+
+## Voraussetzungen
+
+- Home Assistant 2026.9 oder neuer
+- SwitchBot Keypad Vision oder Vision Pro in der **SwitchBot**-Integration von Home Assistant (Bluetooth, mit
+  SwitchBot-Konto, damit der Schlüssel geholt wird) und ein Bluetooth-Adapter/-Proxy in Reichweite
+- Für „wer hat entsperrt“ und die Freigabe: ein ESP32 mit der
+  [switchbot-keypad-bridge](https://github.com/pierluigizagaria/switchbot-keypad-bridge) (nicht Teil dieses Repositorys)
+
+## Einrichten
+
+1. HACS → ⋮ → *Benutzerdefinierte Repositories* → `https://github.com/Aggro600/SwitchBot-Keypad-Manager` (Integration).
+2. **SwitchBot Keypad Manager** installieren, Home Assistant neu starten.
+3. *Einstellungen → Geräte & Dienste → Integration hinzufügen → SwitchBot Keypad Manager*: Keypad, Keypad-Bridge
+   (ESPHome-Gerätename, Standard `keypad-bridge`) und Personen für die Auswahl wählen.
+
+Die Bridge-Konfiguration (Ereignis mit `bridge`, Freigabe mit `approval:` und den Aktionen `approve_unlock` /
+`deny_unlock`) steht im [englischen README](README.md#keypad-bridge-configuration). In den ESPHome-Optionen der Bridge
+*„Dem Gerät erlauben, Home-Assistant-Aktionen auszuführen“* einschalten.
+
+## Gut zu wissen
+
+- **PIN-Codes** sind zufällig (6 Ziffern), werden einmal als Meldung angezeigt und **nirgends gespeichert**.
+- Was hier angelernt wird, kennt die **SwitchBot-App** nicht; die Namen liegen in Home Assistant.
+- **Handfläche:** Start und Status geprüft, Bestätigen/Löschen aus dem Gesichts-Schema abgeleitet.
+- Nach einem Neustart der Bridge muss manches Keypad einmal stromlos gemacht werden.
+- Ein Firmware-Update von SwitchBot kann das Protokoll ändern.
+
+Beispiel-Automationen: [docs/examples.yaml](docs/examples.yaml) · Dashboard: [docs/dashboard.yaml](docs/dashboard.yaml) ·
+Protokoll: [docs/PROTOCOL.md](docs/PROTOCOL.md)
+
+Kein offizielles Produkt von SwitchBot. Nutzung auf eigene Gefahr – es geht um den Zugang zur Wohnung; einen
+Schlüssel oder anderen Zugang behalten.
