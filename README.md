@@ -136,8 +136,12 @@ api:
 Then switch on **Approve unlocks** and set the rules. With the switch off the integration approves every unlock
 immediately, so a bridge with `approval:` never waits for its timeout.
 
-**Keep a key or another way in.** After a bridge reboot (power cut, firmware update) some keypads stop talking to
-the bridge until they are power-cycled – during that time the keypad cannot open the door at all. While Home Assistant is connected, the bridge waits for its
+**Keep a key or another way in** – it is an access system. Tips for the bridge:
+
+- Set `reboot_timeout: 0s` for `api:` and `wifi:` in the bridge YAML. ESPHome's default reboots the ESP32 after
+  15 minutes without Home Assistant or Wi-Fi – the fallback should keep running instead.
+- The keypad only connects while it is used and disconnects a few seconds later; "not connected" is normal.
+- After re-linking a keypad, power-cycle it once. While Home Assistant is connected, the bridge waits for its
 answer (typically a few milliseconds); without a connection it relays immediately, exactly as without approval.
 The keypad always shows success – it does not wait for the lock.
 
