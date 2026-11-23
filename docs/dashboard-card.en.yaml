@@ -57,24 +57,69 @@ cards:
     name: Rule for Who?
   - entity: select.front_door_rule_for_the_entry
     name: Rule for the entry
-  - entity: time.front_door_time_window_from
-    name: Time window from
-  - entity: time.front_door_time_window_until
-    name: Time window until
-  - entity: select.front_door_time_window_days
-    name: Time window days
-  - entity: time.front_door_time_window_2_from
-    name: Window 2 from
-  - entity: time.front_door_time_window_2_until
-    name: Window 2 until
-  - entity: select.front_door_time_window_2_days
-    name: Window 2 days
-  - entity: time.front_door_time_window_3_from
-    name: Window 3 from
-  - entity: time.front_door_time_window_3_until
-    name: Window 3 until
-  - entity: select.front_door_time_window_3_days
-    name: Window 3 days
+  - type: conditional
+    conditions:
+    - entity: select.front_door_rule_for_the_entry
+      state: time_window
+    row:
+      entity: time.front_door_time_window_from
+      name: Time window from
+  - type: conditional
+    conditions:
+    - entity: select.front_door_rule_for_the_entry
+      state: time_window
+    row:
+      entity: time.front_door_time_window_until
+      name: Time window until
+  - type: conditional
+    conditions:
+    - entity: select.front_door_rule_for_the_entry
+      state: time_window
+    row:
+      entity: select.front_door_time_window_days
+      name: Time window days
+  - type: conditional
+    conditions:
+    - entity: select.front_door_rule_for_the_entry
+      state: time_window
+    row:
+      entity: time.front_door_time_window_2_from
+      name: Window 2 from
+  - type: conditional
+    conditions:
+    - entity: select.front_door_rule_for_the_entry
+      state: time_window
+    row:
+      entity: time.front_door_time_window_2_until
+      name: Window 2 until
+  - type: conditional
+    conditions:
+    - entity: select.front_door_rule_for_the_entry
+      state: time_window
+    row:
+      entity: select.front_door_time_window_2_days
+      name: Window 2 days
+  - type: conditional
+    conditions:
+    - entity: select.front_door_rule_for_the_entry
+      state: time_window
+    row:
+      entity: time.front_door_time_window_3_from
+      name: Window 3 from
+  - type: conditional
+    conditions:
+    - entity: select.front_door_rule_for_the_entry
+      state: time_window
+    row:
+      entity: time.front_door_time_window_3_until
+      name: Window 3 until
+  - type: conditional
+    conditions:
+    - entity: select.front_door_rule_for_the_entry
+      state: time_window
+    row:
+      entity: select.front_door_time_window_3_days
+      name: Window 3 days
   - entity: select.front_door_fallback_for_the_entry
     name: Fallback for the entry
   - entity: select.front_door_fallback_without_home_assistant

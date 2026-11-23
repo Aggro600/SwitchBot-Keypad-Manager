@@ -57,24 +57,69 @@ cards:
     name: Regel für Wer?
   - entity: select.keypad_haustur_regel_fur_den_eintrag
     name: Regel für Eintrag
-  - entity: time.keypad_haustur_zeitfenster_von
-    name: Zeitfenster von
-  - entity: time.keypad_haustur_zeitfenster_bis
-    name: Zeitfenster bis
-  - entity: select.keypad_haustur_zeitfenster_tage
-    name: Zeitfenster Tage
-  - entity: time.keypad_haustur_zeitfenster_2_von
-    name: Fenster 2 von
-  - entity: time.keypad_haustur_zeitfenster_2_bis
-    name: Fenster 2 bis
-  - entity: select.keypad_haustur_zeitfenster_2_tage
-    name: Fenster 2 Tage
-  - entity: time.keypad_haustur_zeitfenster_3_von
-    name: Fenster 3 von
-  - entity: time.keypad_haustur_zeitfenster_3_bis
-    name: Fenster 3 bis
-  - entity: select.keypad_haustur_zeitfenster_3_tage
-    name: Fenster 3 Tage
+  - type: conditional
+    conditions:
+    - entity: select.keypad_haustur_regel_fur_den_eintrag
+      state: time_window
+    row:
+      entity: time.keypad_haustur_zeitfenster_von
+      name: Zeitfenster von
+  - type: conditional
+    conditions:
+    - entity: select.keypad_haustur_regel_fur_den_eintrag
+      state: time_window
+    row:
+      entity: time.keypad_haustur_zeitfenster_bis
+      name: Zeitfenster bis
+  - type: conditional
+    conditions:
+    - entity: select.keypad_haustur_regel_fur_den_eintrag
+      state: time_window
+    row:
+      entity: select.keypad_haustur_zeitfenster_tage
+      name: Zeitfenster Tage
+  - type: conditional
+    conditions:
+    - entity: select.keypad_haustur_regel_fur_den_eintrag
+      state: time_window
+    row:
+      entity: time.keypad_haustur_zeitfenster_2_von
+      name: Fenster 2 von
+  - type: conditional
+    conditions:
+    - entity: select.keypad_haustur_regel_fur_den_eintrag
+      state: time_window
+    row:
+      entity: time.keypad_haustur_zeitfenster_2_bis
+      name: Fenster 2 bis
+  - type: conditional
+    conditions:
+    - entity: select.keypad_haustur_regel_fur_den_eintrag
+      state: time_window
+    row:
+      entity: select.keypad_haustur_zeitfenster_2_tage
+      name: Fenster 2 Tage
+  - type: conditional
+    conditions:
+    - entity: select.keypad_haustur_regel_fur_den_eintrag
+      state: time_window
+    row:
+      entity: time.keypad_haustur_zeitfenster_3_von
+      name: Fenster 3 von
+  - type: conditional
+    conditions:
+    - entity: select.keypad_haustur_regel_fur_den_eintrag
+      state: time_window
+    row:
+      entity: time.keypad_haustur_zeitfenster_3_bis
+      name: Fenster 3 bis
+  - type: conditional
+    conditions:
+    - entity: select.keypad_haustur_regel_fur_den_eintrag
+      state: time_window
+    row:
+      entity: select.keypad_haustur_zeitfenster_3_tage
+      name: Fenster 3 Tage
   - entity: select.keypad_haustur_notweg_fur_den_eintrag
     name: Notweg für Eintrag
   - entity: select.keypad_haustur_notweg_ohne_home_assistant
