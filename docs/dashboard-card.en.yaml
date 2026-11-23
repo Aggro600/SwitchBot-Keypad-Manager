@@ -1,0 +1,74 @@
+# SwitchBot Keypad Manager – compact user management (one card, copy & paste)
+# Dashboard → Edit → Add card → Manual → paste everything below this comment block.
+# Entity IDs: this file assumes Home Assistant in ENGLISH and a keypad named "Front door"
+# (entity prefix `front_door`). Replace every `front_door` with your prefix – it is the
+# start of the entity IDs, e.g. sensor.<prefix>_last_unlock. German UI: use dashboard-card.de.yaml.
+
+type: vertical-stack
+cards:
+- type: tile
+  entity: sensor.front_door_last_unlock
+  name: Last unlock
+- type: markdown
+  content: "{% set s = 'sensor.front_door_credentials' %}{{ (state_attr(s,'list') or 'No entries yet.').replace('\\n','  \\n') }}{% set o = state_attr(s,'unassigned') %}{% if o %}  \n*Without a name on\
+    \ the keypad:* {% for k,v in o.items() %}{{ k }} {{ v }}{{ ', ' if not loop.last }}{% endfor %}{% endif %}"
+- type: entities
+  title: Manage users
+  state_color: true
+  entities:
+  - entity: select.front_door_entry
+    name: Entry
+  - entity: select.front_door_person
+    name: Who?
+  - entity: text.front_door_new_person_optional
+    name: New person
+  - entity: select.front_door_what
+    name: What?
+  - entity: select.front_door_validity
+    name: Validity
+  - type: buttons
+    entities:
+    - entity: button.front_door_start_enrollment
+      name: Enroll
+      icon: mdi:account-plus
+    - entity: button.front_door_update_entry
+      name: Update
+      icon: mdi:account-edit
+    - entity: button.front_door_delete_entry
+      name: Delete
+      icon: mdi:account-remove
+  - type: buttons
+    entities:
+    - entity: button.front_door_assign_last_unlock
+      name: Assign
+      icon: mdi:account-arrow-left
+    - entity: button.front_door_sync_with_keypad
+      name: Sync
+      icon: mdi:sync
+    - entity: button.front_door_cancel
+      name: Cancel
+      icon: mdi:cancel
+  - type: divider
+  - entity: sensor.front_door_status
+    name: Status
+  - entity: switch.front_door_approve_unlocks
+    name: Approval by Home Assistant
+  - entity: select.front_door_rule_for_the_person
+    name: Rule for Who?
+  - entity: select.front_door_rule_for_the_entry
+    name: Rule for the entry
+  - entity: time.front_door_time_window_from
+    name: Time window from
+  - entity: time.front_door_time_window_until
+    name: Time window until
+  - entity: select.front_door_time_window_days
+    name: Time window days
+  - entity: select.front_door_fallback_for_the_entry
+    name: Fallback for the entry
+  - entity: select.front_door_fallback_without_home_assistant
+    name: Fallback without Home Assistant
+  - entity: select.front_door_rule_for_unknown_credentials
+    name: Rule for unknown credentials
+- type: markdown
+  content: "**Enroll:** Who + What (+ Validity) → *Enroll* → go to the keypad.  \n**Edit:** pick an entry (Who/What are pre-filled) → change → *Update*.  \n**Delete:** pick an entry → *Delete*.  \n**From\
+    \ the SwitchBot app:** unlock with it → Who/What → *Assign*.  \n**Rule for the entry** overrides the person rule; *Automation only* never opens."

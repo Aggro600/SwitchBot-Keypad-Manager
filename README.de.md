@@ -57,7 +57,11 @@ Die Bridge-Konfiguration (Ereignis mit `bridge`, Freigabe mit `approval:` und de
 - Zugänge aus der SwitchBot-App (nur zugeordnet) werden beim Löschen nur aus der Liste entfernt – im Keypad über die App löschen.
 - Ein Firmware-Update von SwitchBot kann das Protokoll ändern.
 
-Beispiel-Automationen: [docs/examples.yaml](docs/examples.yaml) · Dashboard: [docs/dashboard.yaml](docs/dashboard.yaml) ·
+**Dashboard zum Kopieren:** die ganze Benutzerverwaltung als **eine Karte** – *Dashboard → Bearbeiten → Karte hinzufügen →
+Manuell*, [docs/dashboard-card.de.yaml](docs/dashboard-card.de.yaml) einfügen und das Präfix `keypad_haustur` durch das eigene
+ersetzen (Anfang der Entitäts-IDs, z. B. `sensor.keypad_wohnungstur_zuletzt_entsperrt` → `keypad_wohnungstur`).
+
+Beispiel-Automationen: [docs/examples.yaml](docs/examples.yaml) · großes Dashboard: [docs/dashboard.yaml](docs/dashboard.yaml) ·
 Protokoll: [docs/PROTOCOL.md](docs/PROTOCOL.md)
 
 Kein offizielles Produkt von SwitchBot. Nutzung auf eigene Gefahr – es geht um den Zugang zur Wohnung; einen

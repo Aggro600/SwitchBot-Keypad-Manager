@@ -146,7 +146,14 @@ The keypad always shows success – it does not wait for the lock.
 | `text.…_new_person_optional` | optional: add a person by name |
 | `button.…_start_enrollment`, `…_update_entry`, `…_delete_entry`, `…_assign_last_unlock`, `…_sync_with_keypad`, `…_cancel` | actions |
 
-Entity IDs follow your Home Assistant language. A dashboard example is in [docs/dashboard.yaml](docs/dashboard.yaml).
+Entity IDs follow your Home Assistant language.
+
+### Dashboard (copy & paste)
+
+The complete user management as **one card**: *Dashboard → Edit → Add card → Manual*, paste
+[docs/dashboard-card.en.yaml](docs/dashboard-card.en.yaml) (English UI) or
+[docs/dashboard-card.de.yaml](docs/dashboard-card.de.yaml) (German UI) and replace the entity prefix
+(`front_door` / `keypad_haustur`) with yours. A larger sections view is in [docs/dashboard.yaml](docs/dashboard.yaml).
 
 ## Actions and event
 

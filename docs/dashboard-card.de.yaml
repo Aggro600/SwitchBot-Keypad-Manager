@@ -1,0 +1,74 @@
+# SwitchBot Keypad Manager – kompakte Benutzerverwaltung (eine Karte zum Kopieren)
+# Dashboard → Bearbeiten → Karte hinzufügen → Manuell → alles unterhalb dieses Kommentars einfügen.
+# Entitäts-IDs: Diese Datei setzt Home Assistant auf DEUTSCH und den Keypad-Namen "Keypad Haustür"
+# (Präfix `keypad_haustur`) voraus. Jedes `keypad_haustur` durch dein Präfix ersetzen – das ist der
+# Anfang der Entitäts-IDs, z. B. sensor.<präfix>_zuletzt_entsperrt. Englische Oberfläche: dashboard-card.en.yaml.
+
+type: vertical-stack
+cards:
+- type: tile
+  entity: sensor.keypad_haustur_zuletzt_entsperrt
+  name: Zuletzt entsperrt
+- type: markdown
+  content: "{% set s = 'sensor.keypad_haustur_zugange' %}{{ (state_attr(s,'list') or 'Noch keine Einträge.').replace('\\n','  \\n') }}{% set o = state_attr(s,'unassigned') %}{% if o %}  \n*Im Keypad ohne\
+    \ Namen:* {% for k,v in o.items() %}{{ k }} {{ v }}{{ ', ' if not loop.last }}{% endfor %}{% endif %}"
+- type: entities
+  title: Benutzer verwalten
+  state_color: true
+  entities:
+  - entity: select.keypad_haustur_eintrag
+    name: Eintrag
+  - entity: select.keypad_haustur_person
+    name: Wer?
+  - entity: text.keypad_haustur_neue_person_optional
+    name: Neue Person
+  - entity: select.keypad_haustur_was
+    name: Was?
+  - entity: select.keypad_haustur_gultigkeit
+    name: Gültigkeit
+  - type: buttons
+    entities:
+    - entity: button.keypad_haustur_anlernen_starten
+      name: Anlernen
+      icon: mdi:account-plus
+    - entity: button.keypad_haustur_eintrag_andern
+      name: Ändern
+      icon: mdi:account-edit
+    - entity: button.keypad_haustur_eintrag_loschen
+      name: Löschen
+      icon: mdi:account-remove
+  - type: buttons
+    entities:
+    - entity: button.keypad_haustur_letzte_entsperrung_zuordnen
+      name: Zuordnen
+      icon: mdi:account-arrow-left
+    - entity: button.keypad_haustur_mit_keypad_abgleichen
+      name: Abgleichen
+      icon: mdi:sync
+    - entity: button.keypad_haustur_abbrechen
+      name: Abbrechen
+      icon: mdi:cancel
+  - type: divider
+  - entity: sensor.keypad_haustur_status
+    name: Status
+  - entity: switch.keypad_haustur_entsperren_freigeben
+    name: Freigabe durch Home Assistant
+  - entity: select.keypad_haustur_regel_fur_die_person
+    name: Regel für Wer?
+  - entity: select.keypad_haustur_regel_fur_den_eintrag
+    name: Regel für Eintrag
+  - entity: time.keypad_haustur_zeitfenster_von
+    name: Zeitfenster von
+  - entity: time.keypad_haustur_zeitfenster_bis
+    name: Zeitfenster bis
+  - entity: select.keypad_haustur_zeitfenster_tage
+    name: Zeitfenster Tage
+  - entity: select.keypad_haustur_notweg_fur_den_eintrag
+    name: Notweg für Eintrag
+  - entity: select.keypad_haustur_notweg_ohne_home_assistant
+    name: Notweg ohne Home Assistant
+  - entity: select.keypad_haustur_regel_fur_unbekannte_zugange
+    name: Regel für unbekannte Zugänge
+- type: markdown
+  content: "**Neu:** Wer + Was (+ Gültigkeit) → *Anlernen* → ans Keypad.  \n**Ändern:** Eintrag wählen (Wer/Was werden vorbelegt) → umstellen → *Ändern*.  \n**Löschen:** Eintrag wählen → *Löschen*.  \n\
+    **Aus der SwitchBot-App:** damit entsperren → Wer/Was → *Zuordnen*.  \n**Regel für Eintrag** geht vor der Regel der Person; *Nur Automation* öffnet nie."
