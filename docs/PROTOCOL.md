@@ -33,6 +33,14 @@ Byte 4 (`570F52xx`) selects the credential group: `02` PIN, `03` NFC card, `04` 
 | NFC status | poll `570F530106` | `byte2`: 1 ok, 2 failed, 3 duplicate, 4 timeout |
 | NFC validity / confirm / delete | `570F520303 <slot> <from> <until>` / `570F520307 <slot>` / `570F520304 <slot>` | |
 
+Delete replies carry the remaining count: fingerprint/face/palm `01 <count>`, PIN `01 <count> …`, NFC `01`
+(use the count command). Deleting an empty slot succeeds without changing the count.
+
+No list: on a Keypad Vision Pro the index-table and cursor queries of older keypads (`570F530200`, `…0300`, `…0400`,
+`570F520206/0305/0404` + `570F5302 05/06`, `…0303–0306`, `…0402/0403`) all answer `05`. The credential list shown in
+the SwitchBot app lives in the SwitchBot cloud (the official cloud API only exposes PIN codes). To delete a credential
+of unknown slot, try the slots one by one and watch the count.
+
 Slots: fingerprints are stored from keypad slot 10 on (first fingerprint = 10). On unlock the keypad sends the slot and
 the keypad bridge reports `slot - 10` for slots ≥ 10 (faces use slots below 10 and are reported unchanged).
 After too many failed attempts the keypad locks itself for a while (lockout alarm in the SwitchBot integration).

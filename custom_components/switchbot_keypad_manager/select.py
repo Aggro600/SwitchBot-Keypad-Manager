@@ -62,7 +62,7 @@ class Entry(KeypadEntity, SelectEntity):
 
     @property
     def options(self):
-        return [NO_ENTRY, *self._labels()]
+        return [NO_ENTRY, *self._labels(), *self.manager.unknown_labels()]
 
     @property
     def current_option(self):
@@ -101,7 +101,7 @@ class PersonRule(KeypadEntity, SelectEntity):
 
 class UnknownRule(KeypadEntity, SelectEntity):
     _attr_icon = "mdi:shield-alert"
-    _attr_options = ["always", "blocked"]
+    _attr_options = ["always", "blocked", "event_only"]
 
     def __init__(self, manager):
         super().__init__(manager, "unknown_rule")

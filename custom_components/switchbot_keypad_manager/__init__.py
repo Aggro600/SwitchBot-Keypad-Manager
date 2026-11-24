@@ -24,10 +24,10 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    BRIDGE_UNLOCK_EVENT, CONF_BRIDGE, CONF_KEYPAD_ENTRY, CONF_PERSONS, DOMAIN, FINGERPRINT, KINDS, NFC, NO_ENTRY, PIN,
+    BRIDGE_UNLOCK_EVENT, CONF_BRIDGE, CONF_KEYPAD_ENTRY, CONF_PERSONS, DOMAIN, FACE, FINGERPRINT, KINDS, NFC, NO_ENTRY, PIN,
     RULE_OPTIONS, UNLOCKED_EVENT, VALIDITY_OPTIONS, WHAT_OPTIONS, WINDOW_DEFAULT, WINDOWS, DAY_NAMES,
 )
-from .keypad import Keypad, KeypadError
+from .keypad import DELETE as DELETE_CMD, SLOT_RANGE, Keypad, KeypadError
 from .texts import detail_text, texts
 
 _LOGGER = logging.getLogger(__name__)
@@ -44,6 +44,19 @@ def reported_index(keypad_slot: int) -> int:
     the bridge removes it (index = slot - 10 for slots >= 10), see switchbot-keypad-bridge lock_protocol.cpp.
     """
     return keypad_slot - 10 if keypad_slot >= 10 else keypad_slot
+
+
+def keypad_slot_from_index(kind: str, index: int) -> int | None:
+    """Keypad slot of a credential known only from an unlock (verified for fingerprints and faces).
+
+    Fingerprints live in keypad slots 10+ and are reported as slot - 10; faces are reported unchanged. For PIN,
+    NFC and palm the mapping is not verified, so those stay unknown (list-only delete).
+    """
+    if kind == FINGERPRINT:
+        return index + 10
+    if kind == FACE:
+        return index
+    return None
 
 
 class Manager:
@@ -70,6 +83,11 @@ class Manager:
         self.cancel_event = asyncio.Event()
 
     @property
+    def bridge(self) -> str:
+        """ESPHome device name of the keypad bridge (options override the setup value)."""
+        return self.entry.options.get(CONF_BRIDGE) or self.entry.data[CONF_BRIDGE]
+
+    @property
     def t(self) -> dict:
         return texts(self.hass.config.language)
 
@@ -81,6 +99,8 @@ class Manager:
             if entry.get("source") == "home_assistant" and "keypad_slot" not in entry:
                 entry["keypad_slot"] = entry["slot"]
                 entry["slot"] = reported_index(entry["slot"])
+            if entry.get("keypad_slot") is None and entry.get("source") in ("assigned", "imported"):  # 1.6.2: derive slot
+                entry["keypad_slot"] = keypad_slot_from_index(entry["kind"], entry["slot"])
         self.extra_persons = data.get("persons", [])
         self.last = data.get("last", {})
         self.counts = data.get("counts", {})
@@ -110,7 +130,7 @@ class Manager:
         policy = self.fallback_policy()
         if not force and policy == self._pushed_fallback:
             return
-        service = f"{self.entry.data[CONF_BRIDGE].replace('-', '_')}_set_fallback"
+        service = f"{self.bridge.replace('-', '_')}_set_fallback"
         if not self.hass.services.has_service("esphome", service):
             return
         self._pushed_fallback = policy
@@ -182,7 +202,7 @@ class Manager:
     @callback
     def handle_bridge_event(self, event: Event) -> None:
         data = event.data
-        if data.get("bridge") != self.entry.data[CONF_BRIDGE]:
+        if data.get("bridge") != self.bridge:
             return
         kind = str(data.get("method", ""))
         try:
@@ -294,7 +314,7 @@ class Manager:
 
     def _answer_bridge(self, allowed: bool, kind: str, slot: int) -> None:
         """Approve or deny the waiting unlock; method/index let the bridge reject a late answer."""
-        service = f"{self.entry.data[CONF_BRIDGE].replace('-', '_')}_{'approve' if allowed else 'deny'}_unlock"
+        service = f"{self.bridge.replace('-', '_')}_{'approve' if allowed else 'deny'}_unlock"
         if not self.hass.services.has_service("esphome", service):
             if self.approval:
                 _LOGGER.warning("Approval is on, but esphome.%s does not exist – see the README (bridge approval)",
@@ -352,17 +372,116 @@ class Manager:
         self._notify(message)
         return {"entry": entry, **({"pin": result["pin"]} if "pin" in result else {})}
 
+    # ---------- unknown credentials (on the keypad, not in the list) ----------
+    def unknown_labels(self) -> dict[str, str]:
+        """'Unknown – Face 1' … per kind, one per credential on the keypad without an entry -> kind."""
+        result = {}
+        for kind in KINDS:
+            n = (self.counts.get(kind) or 0) - sum(1 for e in self.entries if e["kind"] == kind)
+            for i in range(1, max(n, 0) + 1):
+                result[f"{self.t['unknown']} – {self.t['kind'][kind]} {i}"] = kind
+        return result
+
+    def _protected_slots(self, kind: str, skip: dict | None = None) -> set[int]:
+        """Keypad slots that belong to entries in the list (never probed)."""
+        slots: set[int] = set()
+        for e in self.entries:
+            if e["kind"] != kind or e is skip:
+                continue
+            if e.get("keypad_slot") is not None:
+                slots.add(e["keypad_slot"])
+            else:   # slot unknown: protect the likely ones
+                slots.update({e["slot"], e["slot"] + 10})
+        return slots
+
+    async def _probe_delete(self, kind: str, candidates: list[int]) -> int | None:
+        counts = await self.keypad.counts()
+        before = counts.get(kind) or 0
+        if before == 0:
+            return None
+        self.cancel_event.clear()
+
+        async def progress(slot: int) -> None:
+            await self.set_status("searching", kind=self.t["kind"][kind], slot=slot)
+
+        return await self.keypad.delete_probe(kind, candidates, before, self.cancel_event, progress)
+
+    async def delete_unknown(self, kind: str) -> None:
+        """Delete one credential of `kind` that has no entry in the list – on the keypad."""
+        kind_text = self.t["kind"][kind]
+        protected = self._protected_slots(kind)
+        candidates = [s for s in SLOT_RANGE[kind] if s not in protected]
+        await self.set_status("searching", kind=kind_text, slot=candidates[0] if candidates else 0)
+        try:
+            slot = await self._probe_delete(kind, candidates)
+        except KeypadError as err:
+            await self.set_status("error", err=str(err))
+            raise
+        self.choice["entry"] = NO_ENTRY
+        await self._refresh_counts()
+        if slot is None:
+            await self.set_status("unknown_not_found", kind=kind_text)
+            raise HomeAssistantError(self.t["unknown_not_found"].format(kind=kind_text))
+        await self.set_status("deleted_unknown", kind=kind_text, slot=slot)
+        self._notify(self.t["deleted_unknown"].format(kind=kind_text, slot=slot))
+
+    async def delete_all(self) -> None:
+        """Delete every credential on the keypad and clear the list."""
+        self.cancel_event.clear()
+        try:
+            counts = await self.keypad.counts()
+            for kind in KINDS:
+                left = counts.get(kind) or 0
+                for slot in SLOT_RANGE[kind]:
+                    if left == 0 or self.cancel_event.is_set():
+                        break
+                    if slot % 5 == 0:
+                        await self.set_status("searching", kind=self.t["kind"][kind], slot=slot)
+                    async with self.keypad.lock:
+                        reply = await self.keypad.command(DELETE_CMD[kind] + f"{slot:02X}")
+                        after = await self.keypad._count(kind, reply)  # noqa: SLF001
+                    if after is not None:
+                        left = after
+                self.entries = [e for e in self.entries if e["kind"] != kind or left]
+        except KeypadError as err:
+            await self.set_status("error", err=str(err))
+            raise
+        finally:
+            await self._refresh_counts()
+        left = {self.t["kind"][k]: v for k, v in self.counts.items() if k in KINDS and v}
+        self.choice["entry"] = NO_ENTRY
+        await self.save()
+        if left:
+            await self.set_status("deleted_all_partly", left=", ".join(f"{k} {v}" for k, v in left.items()))
+        else:
+            self.entries = []
+            await self.save()
+            await self.set_status("deleted_all")
+            self._notify(self.t["deleted_all"])
+
     async def delete(self, entry_id: str) -> None:
         entry = next((e for e in self.entries if e["id"] == entry_id), None)
         if entry is None:
             raise HomeAssistantError(self.t["err_entry"])
         if entry.get("keypad_slot") is None:
-            # not enrolled here (SwitchBot app / assigned): the keypad slot is unknown, never guess it
+            # assigned from an unlock and the slot mapping of this kind is not verified: try the likely slots and
+            # check that the keypad count dropped
+            protected = self._protected_slots(entry["kind"], skip=entry)
+            candidates = [s for s in dict.fromkeys([entry["slot"], entry["slot"] + 10]) if s not in protected]
+            await self.set_status("deleting", entry=self.label(entry))
+            try:
+                slot = await self._probe_delete(entry["kind"], candidates)
+            except KeypadError as err:
+                await self.set_status("error", err=str(err))
+                raise
+            if slot is None:
+                await self.set_status("delete_not_found", entry=self.label(entry))
+                raise HomeAssistantError(self.t["delete_not_found"].format(entry=self.label(entry)))
             self.entries.remove(entry)
             self.choice["entry"] = NO_ENTRY
-            await self.save()
-            await self.set_status("deleted_list_only", entry=self.label(entry))
-            self._notify(self.t["deleted_list_only_note"].format(entry=self.label(entry)))
+            await self._refresh_counts()
+            await self.set_status("deleted", entry=self.label(entry))
+            self._notify(self.t["deleted_note"].format(entry=self.label(entry)))
             return
         await self.set_status("deleting", entry=self.label(entry))
         try:
@@ -413,7 +532,8 @@ class Manager:
         what_kind, detail = WHAT_OPTIONS.get(what, (kind, ""))
         if what_kind != kind:
             detail = ""
-        entry = self.new_entry(kind, slot, person, detail, source="assigned")
+        entry = self.new_entry(kind, slot, person, detail, source="assigned",
+                               keypad_slot=keypad_slot_from_index(kind, slot))
         self.entries.append(entry)
         self.unassigned = None
         self.last.update({"text": self.who(entry), "person": person, "detail": detail})

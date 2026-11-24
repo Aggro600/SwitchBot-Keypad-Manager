@@ -37,6 +37,9 @@ cards:
     - entity: button.keypad_haustur_eintrag_loschen
       name: Löschen
       icon: mdi:account-remove
+    - entity: button.keypad_haustur_alles_loschen_keypad_liste
+      name: Alles (2×)
+      icon: mdi:delete-alert
   - type: buttons
     entities:
     - entity: button.keypad_haustur_letzte_entsperrung_zuordnen

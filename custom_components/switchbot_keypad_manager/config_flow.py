@@ -55,5 +55,10 @@ class KeypadManagerOptionsFlow(OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(data=user_input)
         current = self.config_entry.options.get(CONF_PERSONS, self.config_entry.data.get(CONF_PERSONS, []))
+        bridge = self.config_entry.options.get(CONF_BRIDGE) or self.config_entry.data.get(CONF_BRIDGE, "")
+        bridges = sorted({str(e.data["device_name"]) for e in self.hass.config_entries.async_entries("esphome")
+                          if e.data.get("device_name")} | {bridge})
         return self.async_show_form(step_id="init", data_schema=vol.Schema({
+            vol.Required(CONF_BRIDGE, default=bridge): selector.SelectSelector(selector.SelectSelectorConfig(
+                options=bridges, custom_value=True, mode=selector.SelectSelectorMode.DROPDOWN)),
             vol.Optional(CONF_PERSONS, default=current): _person_selector()}))

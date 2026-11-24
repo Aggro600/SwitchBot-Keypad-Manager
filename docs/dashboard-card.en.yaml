@@ -37,6 +37,9 @@ cards:
     - entity: button.front_door_delete_entry
       name: Delete
       icon: mdi:account-remove
+    - entity: button.front_door_delete_everything_keypad_list
+      name: All (2×)
+      icon: mdi:delete-alert
   - type: buttons
     entities:
     - entity: button.front_door_assign_last_unlock

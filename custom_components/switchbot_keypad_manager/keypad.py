@@ -25,6 +25,9 @@ _LOGGER = logging.getLogger(__name__)
 
 BUSY = b"\x09"
 ENROLL_SECONDS = 90
+# slot ranges tried when the slot is unknown (fingerprints are stored from slot 10 on)
+SLOT_RANGE = {PIN: range(0, 100), NFC: range(0, 100), FINGERPRINT: range(10, 110), FACE: range(0, 30),
+              PALM: range(0, 30)}
 DELETE = {PIN: "570F520205", NFC: "570F520304", FINGERPRINT: "570F520403", FACE: "570F520503", PALM: "570F520603"}
 
 
@@ -84,6 +87,37 @@ class Keypad:
             result[FACE] = data[6]
             result[PALM] = data[7]
         return result
+
+    async def _count(self, kind: str, reply: bytes) -> int | None:
+        """Remaining count after a delete: finger/face/palm answer `01 <count>`, PIN/NFC need a count query."""
+        if kind in (FINGERPRINT, FACE, PALM) and len(reply) >= 2 and reply[0] == 1:
+            return reply[1]
+        try:
+            return (await self.counts()).get(kind)
+        except KeypadError:
+            return None
+
+    async def delete_probe(self, kind: str, candidates: list[int], before: int,
+                           cancel: asyncio.Event | None = None,
+                           progress: Callable[[int], Awaitable[None] | None] | None = None) -> int | None:
+        """Delete the first credential of `kind` found in `candidates`; returns its slot or None.
+
+        The keypad cannot list its credentials, so slots are tried one by one and the count tells whether
+        something was deleted. Deleting an empty slot changes nothing.
+        """
+        async with self.lock:
+            for n, slot in enumerate(candidates):
+                if cancel is not None and cancel.is_set():
+                    return None
+                if progress and n % 5 == 0:
+                    result = progress(slot)
+                    if asyncio.iscoroutine(result):
+                        await result
+                reply = await self.command(DELETE[kind] + _h(slot))
+                after = await self._count(kind, reply)
+                if after is not None and after < before:
+                    return slot
+        return None
 
     async def delete(self, kind: str, slot: int) -> None:
         async with self.lock:

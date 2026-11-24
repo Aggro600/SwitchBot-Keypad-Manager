@@ -11,19 +11,22 @@ nicht erreichbar ist.
 
 - **Anlernen am Keypad aus Home Assistant:** Person und *Was* wählen (10 Finger, Gesicht, Handfläche, zufälliger PIN,
   NFC-Karte), *Anlernen starten*, ans Keypad gehen. Platz und Name werden automatisch gespeichert.
-- **Löschen:** Der Zugang ist danach im Keypad *und* in der Liste weg.
+- **Löschen – immer im Keypad *und* in der Liste:** auch Zugänge, die nicht hier angelernt wurden. Unbekannte stehen in
+  der Auswahl als *Unbekannt – Gesicht 1*, *Unbekannt – PIN-Code 1* …; die Integration sucht den Platz im Keypad
+  selbst (das Keypad meldet beim Löschen die Restanzahl). **Alles löschen** (zweimal drücken) leert Keypad und Liste.
 - **Ändern:** falsche Person oder falscher Finger? Eintrag wählen (Person und Finger werden vorbelegt), umstellen, *Eintrag ändern*.
 - **Befristung** für Finger, PIN und Karte (heute, 24 Stunden, 1 Woche, 1 Monat) und einmalige PINs.
 - **Wer hat wie entsperrt:** „Anna (Daumen rechts) per Fingerabdruck · 08:15“ als Sensor, im Logbuch und als Ereignis
   für Automationen.
-- **Freigabe mit Notweg (optional):** pro Person *Immer*, *Gesperrt*, *Nur 6–22 Uhr*, *Nur werktags 7–19 Uhr*,
+- **Freigabe mit Notweg (optional):** pro Person *Immer*, *Gesperrt*, *Nur Automation*, *Nur 6–22 Uhr*, *Nur werktags 7–19 Uhr*,
   *Nur wenn jemand zu Hause ist* – und **pro Zugang** (geht vor der Person): *Immer öffnen*, *Gesperrt*,
   *Nur Automation* (öffnet nie, löst nur Automationen aus), *Zeitfenster* (bis zu 3 pro Zugang, je Von/Bis + Alle Tage/Werktags/Wochenende/einzelner Tag; geöffnet wird, wenn eines passt),
   *Nur wenn jemand zu Hause ist*. Ist Home Assistant nicht verbunden oder antwortet nicht binnen 2 s, öffnet die
   Bridge nach deiner Wahl: alle erkannten Zugänge, nur für den Notweg erlaubte Einträge oder keiner (dann bleibt die
   Tür ohne Home Assistant zu). Die Notweg-Regel ist in der Bridge gespeichert.
 - **Abgleich:** vergleicht die Anzahl im Keypad mit der Liste und zeigt Zugänge ohne Namen (z. B. aus der
-  SwitchBot-App). Zuordnen: einmal damit entsperren, *Letzte Entsperrung zuordnen*.
+  SwitchBot-App). Zuordnen: einmal damit entsperren, *Letzte Entsperrung zuordnen*. Für unbekannte Zugänge gibt es
+  eine eigene Regel (auch *Nur Automation*) – z. B. „jedes Entsperren startet nur mein Tür-Skript“.
 - **Nur Auswahl:** alles über Auswahllisten und Knöpfe; Freitext nur optional (neue Person).
 - Mehrere Keypads: Integration je Keypad einmal hinzufügen.
 
@@ -58,7 +61,10 @@ Die Bridge-Konfiguration (Ereignis mit `bridge`, Freigabe mit `approval:` und de
 - Nach dem Neukoppeln das Keypad einmal stromlos machen.
 - Finger so oft auflegen, bis das Keypad selbst fertig meldet; die Integration prüft danach die Zählung im Keypad.
 - Zu viele Fehlversuche sperren das Keypad eine Weile (Aussperr-Alarm der SwitchBot-Integration).
-- Zugänge aus der SwitchBot-App (nur zugeordnet) werden beim Löschen nur aus der Liste entfernt – im Keypad über die App löschen.
+- Das Keypad kann seine Zugänge nicht auflisten (die Liste der SwitchBot-App liegt in der SwitchBot-Cloud). Unbekannte
+  Zugänge sieht man daher nur als Anzahl; beim Löschen werden die Plätze der Reihe nach probiert (PIN/Karte bis ca. 1 Minute).
+  Plätze bekannter Einträge werden dabei nie angefasst. Die SwitchBot-App zeigt gelöschte Zugänge evtl. noch an.
+- Die Keypad-Bridge lässt sich nachträglich in den Optionen der Integration ändern (z. B. nach dem Umbenennen).
 - Ein Firmware-Update von SwitchBot kann das Protokoll ändern.
 
 **Automationen ohne Tippen:** *Auslöser hinzufügen → Gerät → (dein Keypad)* → *Entsperrt (beliebiger Zugang)* oder

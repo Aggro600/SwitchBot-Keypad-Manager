@@ -19,7 +19,7 @@ WHAT_OPTIONS = {**{f: (FINGERPRINT, f) for f in FINGERS},
                 "face": (FACE, ""), "palm": (PALM, ""), "pin_random": (PIN, ""), "nfc_card": (NFC, "")}
 
 VALIDITY_OPTIONS = ["permanent", "today", "24h", "1w", "1m", "once"]
-RULE_OPTIONS = ["always", "blocked", "daytime", "weekdays", "someone_home"]
+RULE_OPTIONS = ["always", "blocked", "event_only", "daytime", "weekdays", "someone_home"]
 ENTRY_RULE_OPTIONS = ["inherit", "always", "blocked", "event_only", "time_window", "someone_home"]
 DAY_NAMES = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 DAYS_OPTIONS = ["all", "weekdays", "weekend", *DAY_NAMES, "off"]

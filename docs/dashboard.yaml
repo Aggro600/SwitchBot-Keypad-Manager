@@ -60,6 +60,11 @@ sections:
         color: red
         tap_action: {action: toggle}
       - type: tile
+        entity: button.front_door_delete_everything_keypad_list
+        name: Delete everything (press twice)
+        color: red
+        tap_action: {action: toggle}
+      - type: tile
         entity: button.front_door_sync_with_keypad
         tap_action: {action: toggle}
       - type: tile

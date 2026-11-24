@@ -22,7 +22,8 @@
       "init": {
         "title": "SwitchBot Keypad Manager",
         "data": {
-          "persons": "People in the selection"
+          "persons": "People in the selection",
+          "bridge": "Keypad bridge (ESPHome device)"
         }
       }
     }
@@ -84,6 +85,7 @@
         "state": {
           "always": "Always",
           "blocked": "Blocked",
+          "event_only": "Automation only (never opens)",
           "daytime": "Only 6:00–22:00",
           "weekdays": "Only weekdays 7:00–19:00",
           "someone_home": "Only when someone is home"
@@ -93,7 +95,8 @@
         "name": "Rule for unknown credentials",
         "state": {
           "always": "Always",
-          "blocked": "Blocked"
+          "blocked": "Blocked",
+          "event_only": "Automation only (never opens)"
         }
       },
       "entry_rule": {
@@ -189,6 +192,9 @@
       },
       "update": {
         "name": "Update entry"
+      },
+      "delete_all": {
+        "name": "Delete everything (keypad + list)"
       }
     },
     "switch": {

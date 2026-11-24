@@ -14,12 +14,14 @@ fingerprints, faces, palms, PIN codes and NFC cards, see *who* unlocked *how*, a
 
 - **Enroll on the keypad from Home Assistant** – pick a person and what to enroll (10 fingers, face, palm,
   random PIN, NFC card), press *Start enrollment*, go to the keypad. Slot and name are stored automatically.
-- **Delete** a credential – it is removed from the keypad *and* the list.
+- **Delete – always on the keypad *and* in the list**, also credentials that were not enrolled here. Unknown ones
+  appear in the selection as *Unknown – Face 1*, *Unknown – PIN code 1* …; the integration finds the keypad slot itself
+  (the keypad reports the remaining count on delete). **Delete everything** (press twice) clears keypad and list.
 - **Edit** an entry – wrong person or wrong finger? Select the entry (person and finger are pre-filled), change them, press *Update entry*.
 - **Time limits** for fingerprints, PIN codes and NFC cards (today, 24 h, 1 week, 1 month) and one-time PINs.
 - **Who unlocked how** – "Anna (right thumb) via Fingerprint · 08:15" as a sensor, a logbook entry and an event
   for your automations.
-- **Approval with fallback (optional)** – per person: *always*, *blocked*, *only 6:00–22:00*,
+- **Approval with fallback (optional)** – per person: *always*, *blocked*, *automation only*, *only 6:00–22:00*,
   *only weekdays 7:00–19:00*, *only when someone is home* – and **per credential** (overrides the person):
   *always open*, *blocked*, *automation only* (never opens, only triggers your automations), *time window*
   (up to 3 windows per entry, each from/until + every day / weekdays / weekend / a single day; opens if one matches),
@@ -27,7 +29,8 @@ fingerprints, faces, palms, PIN codes and NFC cards, see *who* unlocked *how*, a
   within 2 s, the bridge falls back – by default it opens for every recognised credential, or (your choice) only
   for entries allowed for the fallback, or for nobody. The fallback policy is stored on the bridge.
 - **Sync** – compares the counts stored on the keypad with the list and shows credentials without a name
-  (e.g. created in the SwitchBot app). Assign them by unlocking once and pressing *Assign last unlock*.
+  (e.g. created in the SwitchBot app). Assign them by unlocking once and pressing *Assign last unlock*. Unknown
+  credentials have their own rule (also *automation only*) – e.g. "every unlock only runs my door script".
 - **Selection only** – everything works with dropdowns and buttons; free text is optional (new person name).
 - Several keypads: add the integration once per keypad.
 
@@ -69,7 +72,7 @@ Enrolling and deleting works without the bridge; the last-unlock sensor, rules a
 2. Install **SwitchBot Keypad Manager**, restart Home Assistant.
 3. *Settings → Devices & services → Add integration → SwitchBot Keypad Manager*:
    - **Keypad** – the keypad from the SwitchBot integration,
-   - **Keypad bridge** – the ESPHome device name of your bridge (default `keypad-bridge`),
+   - **Keypad bridge** – the ESPHome device name of your bridge (can be changed later in the options),
    - **People in the selection** – `person` entities offered in the *Person* dropdown.
 
 ### Keypad bridge configuration
@@ -160,6 +163,7 @@ The keypad always shows success – it does not wait for the lock.
 | `select.…_fallback_without_home_assistant`, `select.…_fallback_for_the_entry` | fallback policy: all / only allowed entries / nobody, and per entry |
 | `text.…_new_person_optional` | optional: add a person by name |
 | `button.…_start_enrollment`, `…_update_entry`, `…_delete_entry`, `…_assign_last_unlock`, `…_sync_with_keypad`, `…_cancel` | actions |
+| `button.…_delete_everything_keypad_list` | deletes every credential on the keypad and the list – press twice within 15 s |
 
 Entity IDs follow your Home Assistant language.
 
@@ -176,8 +180,7 @@ The complete user management as **one card**: *Dashboard → Edit → Add card �
   `pin_random`, `nfc_card`), `validity` (`permanent`, `today`, `24h`, `1w`, `1m`, `once`); returns the entry
   and, for PINs, the generated code.
 - `switchbot_keypad_manager.update` – `entry_id`, optional `person` and `what` (the kind stays the same).
-- `switchbot_keypad_manager.delete` – `entry_id` (from the `entries` attribute). Entries that were not enrolled here
-  (assigned from the SwitchBot app) are only removed from the list – their keypad slot is unknown, delete them in the app.
+- `switchbot_keypad_manager.delete` – `entry_id` (from the `entries` attribute); deletes on the keypad and in the list.
 - `switchbot_keypad_manager.sync`
 - Event `switchbot_keypad_manager_unlocked` – `keypad`, `person`, `detail`, `kind`, `kind_text`, `slot`, `text`,
   `rule`, `decision` (`open`, `denied`, `event_only`), `allowed`, `time`.
@@ -214,6 +217,9 @@ More examples (one combined automation vs. one automation per case): [docs/examp
 - **PIN codes** are random 6-digit codes, shown once as a notification and **not stored** anywhere.
 - Credentials enrolled here are **not known to the SwitchBot app** (it keeps names in your SwitchBot account);
   names live in Home Assistant.
+- **The keypad cannot list its credentials** (the list in the SwitchBot app lives in the SwitchBot cloud). Unknown
+  credentials are therefore only known as a count; deleting one tries the keypad slots one by one until the count drops
+  (PIN/card up to about a minute). Slots of known entries are never touched. The SwitchBot app may still show deleted ones.
 - **Palm**: start and status are verified; confirm/delete follow the face scheme and are not verified on every
   firmware – please report results.
 - After the bridge restarts, some keypads stop talking to it until they are power-cycled once.
