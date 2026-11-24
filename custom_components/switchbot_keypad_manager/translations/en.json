@@ -102,7 +102,7 @@
       "entry_rule": {
         "name": "Rule for the entry",
         "state": {
-          "inherit": "Like the person",
+          "inherit": "Same as the person (the person's rule applies)",
           "always": "Always open",
           "blocked": "Blocked",
           "event_only": "Automation only (never opens)",

@@ -10,8 +10,8 @@ cards:
   entity: sensor.front_door_last_unlock
   name: Last unlock
 - type: markdown
-  content: "{% set s = 'sensor.front_door_credentials' %}{{ (state_attr(s,'list') or 'No entries yet.').replace('\\n','  \\n') }}{% set o = state_attr(s,'unassigned') %}{% if o %}  \n*Without a name on\
-    \ the keypad:* {% for k,v in o.items() %}{{ k }} {{ v }}{{ ', ' if not loop.last }}{% endfor %}{% endif %}"
+  content: "{% set s = 'sensor.front_door_credentials' %}{{ (state_attr(s,'list') or 'No entries yet.').replace('\\n','  \\n') }}{% set o = state_attr(s,'unassigned') %}{% if o %}  \n*On the keypad without\
+    \ a name:* {% for k,v in o.items() %}{{ k }} {{ v }}{{ ', ' if not loop.last }}{% endfor %} – in the *Entry* selection as \"Unknown – …\": assign or delete.{% endif %}"
 - type: entities
   title: Manage users
   state_color: true
@@ -19,9 +19,9 @@ cards:
   - entity: select.front_door_entry
     name: Entry
   - entity: select.front_door_person
-    name: Who?
+    name: Person
   - entity: text.front_door_new_person_optional
-    name: New person
+    name: New person (optional)
   - entity: select.front_door_what
     name: What?
   - entity: select.front_door_validity
@@ -55,9 +55,11 @@ cards:
   - entity: sensor.front_door_status
     name: Status
   - entity: switch.front_door_approve_unlocks
-    name: Approval by Home Assistant
+    name: Approve unlocks
   - entity: select.front_door_rule_for_the_person
-    name: Rule for Who?
+    name: Rule for the selected person
+  - entity: select.front_door_rule_for_unknown_credentials
+    name: Rule for credentials without a name
   - entity: select.front_door_rule_for_the_entry
     name: Rule for the entry
   - type: conditional
@@ -127,9 +129,36 @@ cards:
     name: Fallback for the entry
   - entity: select.front_door_fallback_without_home_assistant
     name: Fallback without Home Assistant
-  - entity: select.front_door_rule_for_unknown_credentials
-    name: Rule for unknown credentials
 - type: markdown
-  content: "**Enroll:** Who + What (+ Validity) → *Enroll* → go to the keypad.  \n**Edit:** pick an entry (Who/What are pre-filled) → change → *Update*.  \n**Delete:** pick an entry → *Delete*.  \n**From\
-    \ the SwitchBot app:** unlock with it → Who/What → *Assign*.  \n**Rule for the entry** overrides the person rule; *Automation only* never opens.  \n**Time windows:** up to 3 per entry, each with its\
-    \ own days (or *Off*); the door opens if **one** matches."
+  content: "{% set s='sensor.front_door_credentials' %}{% set N={'always':'Always open','blocked':'Blocked','event_only':'Automation only','daytime':'Only 6:00–22:00','weekdays':'Only weekdays 7:00–19:00','someone_home':'Only\
+    \ when someone is home','time_window':'Time window','inherit':'Same as the person'} %}{% set R={'always':'the door opens','blocked':'the door stays locked (denied)','event_only':'the door stays locked\
+    \ – only your automations run','daytime':'opens only 6:00–22:00','weekdays':'opens only on weekdays 7:00–19:00','someone_home':'opens only when someone is home','time_window':'opens only within the\
+    \ time windows'} %}{% set sel=states('select.front_door_entry') %}{% set fm=state_attr(s,'fallback_mode') %}{% set e=(state_attr(s,'entries') or [])|selectattr('label','eq',sel)|list|first %}### What\
+    \ happens with this credential?\n{% if not is_state('switch.front_door_approve_unlocks','on') %}**Approve unlocks is off:** the bridge opens immediately for every recognised credential. The rules apply\
+    \ once you switch it on.\n{% elif e %}**{{ e.label }}**  \nRule of the entry: *{{ N[e.rule] }}*{% if e.rule=='inherit' %} → so the rule of **{{ e.person }}**: *{{ N[e.effective_rule] }}*{% endif %}\
+    \  \n➜ **{{ R[e.effective_rule] }}**{% if e.effective_rule in ['daytime','weekdays','someone_home','time_window'] %} – right now: {{ 'opens' if e.decision_now=='open' else 'stays locked' }}{% endif\
+    \ %}  \nWithout Home Assistant (fallback): {{ 'the bridge opens itself' if fm=='all' or (fm=='allowed' and e.fallback) else 'the door stays locked' }}\n{% elif sel not in ['none','unknown','unavailable']\
+    \ %}**{{ sel }}** (no name)  \nThe *rule for unknown credentials* applies: *{{ N[state_attr(s,'unknown_rule')] }}*  \n➜ **{{ R[state_attr(s,'unknown_rule')] }}**  \nWithout Home Assistant (fallback):\
+    \ {{ 'the bridge opens itself' if fm=='all' else 'the door stays locked' }}\n{% else %}Select an **entry** above – this card then explains what happens with that finger/face/…{% endif %}"
+- type: markdown
+  content: |-
+    **New:** person + what (+ validity) → *Enroll* → go to the keypad.
+    **Update:** select an entry (person/what are pre-filled) → change → *Update*.
+    **Delete:** select an entry → *Delete* – always on the keypad *and* in the list, also *Unknown – …* (Home Assistant finds the slot itself). *All (2×)* = press twice within 15 s.
+    **Without a name:** unlock with it → choose person/what → *Assign*.
+
+    **Which rule applies?** (only with *Approve unlocks* on; off = the bridge always opens immediately)
+    1. Entry with its own rule → that rule.
+    2. Entry set to *Same as the person* → the **person's rule** (select the person → *Rule for the selected person*; default *Always*).
+    3. Credential without a name → *Rule for credentials without a name*.
+
+    | Rule | What happens |
+    |---|---|
+    | Always (open) | the door opens |
+    | Blocked | stays locked, event "denied" |
+    | Automation only | stays locked, your automations run (device trigger *Unlocked …*, outcome *Automation only*) |
+    | Only 6:00–22:00 / Only weekdays 7:00–19:00 | person only |
+    | Time window | entry only: up to 3 × from/until/days, opens if **one** matches |
+    | Only when someone is home | opens only when someone is home |
+
+    **Fallback** (Home Assistant down or no answer within 2 s): *open for every recognised credential* / *only entries allowed for the fallback* (*Fallback for the entry*) / *nobody* – then the door stays locked without Home Assistant. Stored on the bridge, works without Wi-Fi.

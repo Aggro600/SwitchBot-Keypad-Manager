@@ -71,7 +71,7 @@ Die Bridge-Konfiguration (Ereignis mit `bridge`, Freigabe mit `approval:` und de
 *Entsperrt mit bestimmtem Zugang* (Person + Finger/Gesicht/… aus einer Liste), jeweils mit *Ergebnis* (beliebig /
 geöffnet / abgelehnt / nur Automation).
 
-**Dashboard zum Kopieren:** die ganze Benutzerverwaltung als **eine Karte** – *Dashboard → Bearbeiten → Karte hinzufügen →
+**Dashboard zum Kopieren:** die ganze Benutzerverwaltung als **eine Karte** (mit Live-Erklärung *„Was passiert bei diesem Zugang?“* für den gewählten Eintrag und Regel-Tabelle) – *Dashboard → Bearbeiten → Karte hinzufügen →
 Manuell*, [docs/dashboard-card.de.yaml](docs/dashboard-card.de.yaml) einfügen und das Präfix `keypad_haustur` durch das eigene
 ersetzen (Anfang der Entitäts-IDs, z. B. `sensor.keypad_wohnungstur_zuletzt_entsperrt` → `keypad_wohnungstur`).
 

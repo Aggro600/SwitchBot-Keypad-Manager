@@ -11,7 +11,7 @@ cards:
   name: Zuletzt entsperrt
 - type: markdown
   content: "{% set s = 'sensor.keypad_haustur_zugange' %}{{ (state_attr(s,'list') or 'Noch keine Einträge.').replace('\\n','  \\n') }}{% set o = state_attr(s,'unassigned') %}{% if o %}  \n*Im Keypad ohne\
-    \ Namen:* {% for k,v in o.items() %}{{ k }} {{ v }}{{ ', ' if not loop.last }}{% endfor %}{% endif %}"
+    \ Namen:* {% for k,v in o.items() %}{{ k }} {{ v }}{{ ', ' if not loop.last }}{% endfor %} – in der Auswahl *Eintrag* als „Unbekannt – …“: zuordnen oder löschen.{% endif %}"
 - type: entities
   title: Benutzer verwalten
   state_color: true
@@ -19,9 +19,9 @@ cards:
   - entity: select.keypad_haustur_eintrag
     name: Eintrag
   - entity: select.keypad_haustur_person
-    name: Wer?
+    name: Person
   - entity: text.keypad_haustur_neue_person_optional
-    name: Neue Person
+    name: Neue Person (optional)
   - entity: select.keypad_haustur_was
     name: Was?
   - entity: select.keypad_haustur_gultigkeit
@@ -55,11 +55,13 @@ cards:
   - entity: sensor.keypad_haustur_status
     name: Status
   - entity: switch.keypad_haustur_entsperren_freigeben
-    name: Freigabe durch Home Assistant
+    name: Entsperren freigeben
   - entity: select.keypad_haustur_regel_fur_die_person
-    name: Regel für Wer?
+    name: Regel für die gewählte Person
+  - entity: select.keypad_haustur_regel_fur_unbekannte_zugange
+    name: Regel für Zugänge ohne Namen
   - entity: select.keypad_haustur_regel_fur_den_eintrag
-    name: Regel für Eintrag
+    name: Regel für den Eintrag
   - type: conditional
     conditions:
     - entity: select.keypad_haustur_regel_fur_den_eintrag
@@ -124,12 +126,39 @@ cards:
       entity: select.keypad_haustur_zeitfenster_3_tage
       name: Fenster 3 Tage
   - entity: select.keypad_haustur_notweg_fur_den_eintrag
-    name: Notweg für Eintrag
+    name: Notweg für den Eintrag
   - entity: select.keypad_haustur_notweg_ohne_home_assistant
     name: Notweg ohne Home Assistant
-  - entity: select.keypad_haustur_regel_fur_unbekannte_zugange
-    name: Regel für unbekannte Zugänge
 - type: markdown
-  content: "**Neu:** Wer + Was (+ Gültigkeit) → *Anlernen* → ans Keypad.  \n**Ändern:** Eintrag wählen (Wer/Was werden vorbelegt) → umstellen → *Ändern*.  \n**Löschen:** Eintrag wählen → *Löschen*.  \n\
-    **Aus der SwitchBot-App:** damit entsperren → Wer/Was → *Zuordnen*.  \n**Regel für Eintrag** geht vor der Regel der Person; *Nur Automation* öffnet nie.  \n**Zeitfenster:** bis zu 3 pro Eintrag, je\
-    \ mit eigenen Tagen (oder *Aus*); geöffnet wird, wenn **eines** passt."
+  content: "{% set s='sensor.keypad_haustur_zugange' %}{% set N={'always':'Immer öffnen','blocked':'Gesperrt','event_only':'Nur Automation','daytime':'Nur 6–22 Uhr','weekdays':'Nur werktags 7–19 Uhr','someone_home':'Nur\
+    \ wenn jemand zu Hause ist','time_window':'Zeitfenster','inherit':'Wie die Person'} %}{% set R={'always':'Tür öffnet','blocked':'Tür bleibt zu (abgelehnt)','event_only':'Tür bleibt zu – es laufen nur\
+    \ deine Automationen','daytime':'öffnet nur 6–22 Uhr','weekdays':'öffnet nur werktags 7–19 Uhr','someone_home':'öffnet nur, wenn jemand zu Hause ist','time_window':'öffnet nur in den Zeitfenstern'}\
+    \ %}{% set sel=states('select.keypad_haustur_eintrag') %}{% set fm=state_attr(s,'fallback_mode') %}{% set e=(state_attr(s,'entries') or [])|selectattr('label','eq',sel)|list|first %}### Was passiert\
+    \ bei diesem Zugang?\n{% if not is_state('switch.keypad_haustur_entsperren_freigeben','on') %}**Entsperren freigeben ist aus:** Die Bridge öffnet bei jedem erkannten Zugang sofort. Die Regeln gelten\
+    \ erst, wenn du es einschaltest.\n{% elif e %}**{{ e.label }}**  \nRegel des Eintrags: *{{ N[e.rule] }}*{% if e.rule=='inherit' %} → also die Regel von **{{ e.person }}**: *{{ N[e.effective_rule] }}*{%\
+    \ endif %}  \n➜ **{{ R[e.effective_rule] }}**{% if e.effective_rule in ['daytime','weekdays','someone_home','time_window'] %} – gerade: {{ 'öffnet' if e.decision_now=='open' else 'bleibt zu' }}{% endif\
+    \ %}  \nOhne Home Assistant (Notweg): {{ 'Bridge öffnet selbst' if fm=='all' or (fm=='allowed' and e.fallback) else 'Tür bleibt zu' }}\n{% elif sel not in ['none','unknown','unavailable'] %}**{{ sel\
+    \ }}** (ohne Namen)  \nEs gilt die *Regel für unbekannte Zugänge*: *{{ N[state_attr(s,'unknown_rule')] }}*  \n➜ **{{ R[state_attr(s,'unknown_rule')] }}**  \nOhne Home Assistant (Notweg): {{ 'Bridge\
+    \ öffnet selbst' if fm=='all' else 'Tür bleibt zu' }}\n{% else %}Wähle oben einen **Eintrag** – hier steht dann in Klartext, was bei diesem Finger/Gesicht/… passiert.{% endif %}"
+- type: markdown
+  content: |-
+    **Neu:** Person + Was (+ Gültigkeit) → *Anlernen* → ans Keypad.
+    **Ändern:** Eintrag wählen (Person/Was werden vorbelegt) → umstellen → *Ändern*.
+    **Löschen:** Eintrag wählen → *Löschen* – immer im Keypad *und* in der Liste, auch *Unbekannt – …* (Home Assistant sucht den Platz selbst). *Alles (2×)* = zweimal in 15 s.
+    **Ohne Namen:** damit entsperren → Person/Was wählen → *Zuordnen*.
+
+    **Welche Regel gilt?** (nur bei *Entsperren freigeben* = an; aus = die Bridge öffnet immer sofort)
+    1. Eintrag mit eigener Regel → diese.
+    2. Eintrag auf *Wie die Person* → die **Regel der Person** (Person wählen → *Regel für die gewählte Person*; ohne Einstellung *Immer*).
+    3. Zugang ohne Namen → *Regel für Zugänge ohne Namen*.
+
+    | Regel | Was passiert |
+    |---|---|
+    | Immer (öffnen) | Tür öffnet |
+    | Gesperrt | bleibt zu, Ereignis „abgelehnt“ |
+    | Nur Automation | bleibt zu, deine Automationen laufen (Geräte-Auslöser *Entsperrt …*, Ergebnis *Nur Automation*) |
+    | Nur 6–22 Uhr / Nur werktags 7–19 Uhr | nur Person |
+    | Zeitfenster | nur Eintrag: bis zu 3 × Von/Bis/Tage, öffnet wenn **eines** passt |
+    | Nur wenn jemand zu Hause ist | öffnet nur, wenn jemand zu Hause ist |
+
+    **Notweg** (Home Assistant weg oder antwortet nicht binnen 2 s): *Alle erkannten Zugänge öffnen* / *Nur für den Notweg erlaubte Einträge* (*Notweg für den Eintrag*) / *Keiner* – dann bleibt die Tür ohne Home Assistant zu. Liegt in der Bridge, gilt auch ohne WLAN.

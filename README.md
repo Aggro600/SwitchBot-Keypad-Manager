@@ -153,7 +153,7 @@ The keypad always shows success – it does not wait for the lock.
 | Entity | Purpose |
 |---|---|
 | `sensor.…_last_unlock` | "Anna (right thumb) via Fingerprint · 08:15" – attributes `person`, `detail`, `kind`, `slot`, `allowed` |
-| `sensor.…_credentials` | number of entries – attributes `entries`, `list`, `on_keypad`, `unassigned` |
+| `sensor.…_credentials` | number of entries – attributes `entries` (each with `label`, `rule`, `effective_rule`, `decision_now`, …), `list`, `on_keypad`, `unassigned`, `person_rules`, `unknown_rule`, `approval` |
 | `sensor.…_status` | what to do / result of the last action |
 | `select.…_person`, `…_what`, `…_validity` | choices for enrolling |
 | `select.…_entry` | entry to delete |
@@ -169,7 +169,7 @@ Entity IDs follow your Home Assistant language.
 
 ### Dashboard (copy & paste)
 
-The complete user management as **one card**: *Dashboard → Edit → Add card → Manual*, paste
+The complete user management as **one card** – including a live box *“What happens with this credential?”* that explains the effective rule of the selected entry in plain words, and a rule table: *Dashboard → Edit → Add card → Manual*, paste
 [docs/dashboard-card.en.yaml](docs/dashboard-card.en.yaml) (English UI) or
 [docs/dashboard-card.de.yaml](docs/dashboard-card.de.yaml) (German UI) and replace the entity prefix
 (`front_door` / `keypad_haustur`) with yours. A larger sections view is in [docs/dashboard.yaml](docs/dashboard.yaml).

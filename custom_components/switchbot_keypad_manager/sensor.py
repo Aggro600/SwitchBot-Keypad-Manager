@@ -50,7 +50,8 @@ class Credentials(KeypadEntity, SensorEntity):
         m = self.manager
         ordered = sorted(m.entries, key=lambda e: (e["person"], e["kind"], e["slot"]))
         return {
-            "entries": [{"id": e["id"], "person": e["person"], "detail": e.get("detail", ""), "kind": e["kind"],
+            "entries": [{"id": e["id"], "label": m.label(e), "effective_rule": m.decide(e)[1], "decision_now": m.decide(e)[0],
+                         "person": e["person"], "detail": e.get("detail", ""), "kind": e["kind"],
                          "slot": e["slot"], "keypad_slot": e.get("keypad_slot"), "rule": e.get("rule") or "inherit",
                          "windows": [dict(w) for w in m.windows(e)], "fallback": e.get("fallback", True), "valid_until": e.get("valid_until"), "source": e.get("source")}
                         for e in ordered],
@@ -58,6 +59,9 @@ class Credentials(KeypadEntity, SensorEntity):
             "on_keypad": {m.t["kind"].get(k, k): n for k, n in m.counts.items()},
             "unassigned": m.unassigned_counts(),
             "fallback_mode": m.fallback_mode,
+            "person_rules": dict(m.rules),
+            "unknown_rule": m.unknown_rule,
+            "approval": m.approval,
         }
 
 
