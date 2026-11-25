@@ -8,6 +8,12 @@ from .entity import KeypadEntity
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
+    if entry.data.get("type") == "lock":
+        from .lock import lock_entities
+        async_add_entities(lock_entities("switch", hass.data[DOMAIN][entry.entry_id]))
+        return
+    from .keypad_settings import setting_entities
+    async_add_entities(setting_entities("switch", hass.data[DOMAIN][entry.entry_id]))
     async_add_entities([Approval(hass.data[DOMAIN][entry.entry_id])])
 
 

@@ -31,7 +31,8 @@ from .keypad import DELETE as DELETE_CMD, SLOT_RANGE, Keypad, KeypadError, KeyRe
 from .texts import detail_text, texts
 
 _LOGGER = logging.getLogger(__name__)
-PLATFORMS = [Platform.BUTTON, Platform.SELECT, Platform.SENSOR, Platform.SWITCH, Platform.TEXT, Platform.TIME]
+PLATFORMS = [Platform.BUTTON, Platform.NUMBER, Platform.SELECT, Platform.SENSOR, Platform.SWITCH, Platform.TEXT, Platform.TIME]
+LOCK_PLATFORMS = [Platform.BUTTON, Platform.NUMBER, Platform.SELECT, Platform.SWITCH, Platform.TIME]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 SIGNAL = f"{DOMAIN}_updated_{{}}"
 STORAGE_VERSION = 1
@@ -627,7 +628,16 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    if entry.data.get("type") == "lock":
+        from .lock import LockSettings
+        ls = LockSettings(hass, entry)
+        hass.data.setdefault(DOMAIN, {})[entry.entry_id] = ls
+        await hass.config_entries.async_forward_entry_setups(entry, LOCK_PLATFORMS)
+        ls.start()
+        return True
     manager = Manager(hass, entry)
+    from .keypad_settings import KeypadSettings
+    manager.settings = KeypadSettings(manager)
     if not (entry.data.get(CONF_ADDRESS) and entry.data.get(CONF_KEY_ID) and entry.data.get(CONF_ENCRYPTION_KEY)):
         # set up with 1.x (through the SwitchBot integration): approval and unlock events keep working, enrolling and
         # deleting need the keypad address and key once -> re-authentication
@@ -647,6 +657,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     manager.push_fallback(force=True)
     entry.async_on_unload(entry.add_update_listener(_reload))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    if entry.data.get(CONF_KEY_ID):
+        manager.settings.start()
     return True
 
 
@@ -655,9 +667,16 @@ async def _reload(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    if entry.data.get("type") == "lock":
+        unloaded = await hass.config_entries.async_unload_platforms(entry, LOCK_PLATFORMS)
+        if unloaded:
+            hass.data[DOMAIN].pop(entry.entry_id).stop()
+        return unloaded
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
-        hass.data[DOMAIN].pop(entry.entry_id).cancel()
+        m = hass.data[DOMAIN].pop(entry.entry_id)
+        m.settings.stop()
+        m.cancel()
     return unloaded
 
 

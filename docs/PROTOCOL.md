@@ -52,3 +52,32 @@ of unknown slot, try the slots one by one and watch the count.
 Slots: fingerprints are stored from keypad slot 10 on (first fingerprint = 10). On unlock the keypad sends the slot and
 the keypad bridge reports `slot - 10` for slots ≥ 10 (faces use slots below 10 and are reported unchanged).
 After too many failed attempts the keypad locks itself for a while (lockout alarm in the SwitchBot integration).
+
+## Keypad settings (verified on a Keypad Vision Pro)
+
+| Setting | Read `570F53…` reply | Write `570F52…` |
+|---|---|---|
+| Lock button | `0101` → `01 <01 off / 02 on / 03 timed>` | `0101 <01/02> 0000` |
+| Keypad disabled | `0102` → `01 <01 no / 02 yes>` | `0102 <01/02>` |
+| Tamper alarm | `0103` → `01 <01 off / 02 on>` | writing does not change it on the Vision Pro |
+| Backlight, level, key tone | `0104` → `01 <mode 01 off/02 auto/03 on> <level> <tone 01/02>` | `0104 <mode> <level> <tone>` (`00` = keep) |
+| Fast unlock | `0107` → `01 <00 off / 01 always / 02 auto>` | `0107 <v>` |
+| Detection sensitivity | `0108` → `01 <01 low … 03 high>` | `0108 <v>` |
+| (unknown, 3 bytes) | `0109` → `01 02 01 01` | write all 3 bytes or the others are cleared |
+| Detection trigger | `010A` → `01 <01 auto / 02 manual / 03 schedule>` | `010A <v>` |
+| Deactivation interval | `010B` → `01 <seconds>` | `010B <s>` |
+| Volume | `010C` → `01 <voice> <tones>` (1 mute … 4 high) | `010C <v> <01 tones / 02 voice>`, one byte = both |
+
+## Lock Ultra settings (verified)
+
+| Setting | Read `570F4F…` | Write `570F4E…` |
+|---|---|---|
+| Light / sound / button | `0401` byte1: bit7 light, bit6 sound, bit3 button, bit2 double press, bits1-0 action (0 lock, 1 unlock, 2 toggle) | `0401 00 <mask 80/40/0E> <value> FF`; button off `0401 00 08 00 FF` |
+| Motor speed | `0401` byte3 (0 fast, 1 normal, 2 quiet) | `0401 00 00 00 <speed>` |
+| Half lock | `0401` byte5 bit6 | `040C00 <0/1>` |
+| Auto-lock | `0402` → `01 <on<<7 \| seconds> <minutes>` | `0402 00 <on<<7 \| s> <min>` |
+| Pause auto-lock | `0404` → `01 <on<<7>` | `0404 00 <on<<7>` |
+| iBeacon | `8203` → `01 <0/1>` | `8203 <0/1>` |
+| Night mode | `0700` → `01 <info> <sh> <sm> <eh> <em> <as> <am>` | `0700 <info> <sh> <sm> <eh> <em> <as> <am>`; info bit7 lock at start, bit6 auto-unlock allowed, bit5 auto-lock, bits4-3 speed, bit2 sound, bit1 on, bit0 half |
+
+Busy replies (`04`) right after a change are retried.

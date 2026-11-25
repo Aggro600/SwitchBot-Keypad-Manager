@@ -18,7 +18,8 @@ from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
-    CONF_ADDRESS, CONF_BRIDGE, CONF_ENCRYPTION_KEY, CONF_KEY_ID, CONF_MODEL, CONF_PERSONS, DOMAIN, KEYPAD_MODELS,
+    CONF_ADDRESS, CONF_BRIDGE, CONF_ENCRYPTION_KEY, CONF_KEY_ID, CONF_MODEL, CONF_PERSONS, CONF_TYPE, DOMAIN, KEYPAD_MODELS,
+    LOCK_MODELS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -28,8 +29,8 @@ def _person_selector():
     return selector.EntitySelector(selector.EntitySelectorConfig(domain="person", multiple=True))
 
 
-def discovered_keypads(hass) -> dict[str, str]:
-    """address -> model name of Keypad Vision (Pro) devices currently seen by Home Assistant's Bluetooth."""
+def discovered_keypads(hass, models=KEYPAD_MODELS) -> dict[str, str]:
+    """address -> model name of devices of `models` currently seen by Home Assistant's Bluetooth."""
     from switchbot import parse_advertisement_data
     found: dict[str, str] = {}
     for info in bluetooth.async_discovered_service_info(hass, connectable=True):
@@ -38,17 +39,18 @@ def discovered_keypads(hass) -> dict[str, str]:
         except Exception:  # noqa: BLE001 - foreign advertisements
             continue
         model = str((adv.data or {}).get("modelName") or "") if adv else ""
-        if model in KEYPAD_MODELS:
+        if model in models:
             found[info.address] = model
     return found
 
 
 async def _verify(hass, address: str, model: str, key_id: str, key: str) -> bool:
-    from switchbot import SwitchbotKeypadVision, SwitchbotModel
+    from switchbot import SwitchbotKeypadVision, SwitchbotLock, SwitchbotModel
     ble = bluetooth.async_ble_device_from_address(hass, address, connectable=True)
     if ble is None:
         return False
-    return await SwitchbotKeypadVision.verify_encryption_key(ble, key_id, key, SwitchbotModel(model))
+    cls = SwitchbotLock if model in LOCK_MODELS else SwitchbotKeypadVision
+    return await cls.verify_encryption_key(ble, key_id, key, SwitchbotModel(model))
 
 
 class KeypadManagerConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -60,8 +62,32 @@ class KeypadManagerConfigFlow(ConfigFlow, domain=DOMAIN):
         self._settings: dict[str, Any] = {}
         self._reauth_entry: ConfigEntry | None = None
 
-    # ---------- 1. keypad + bridge + persons ----------
+    # ---------- 0. what to add ----------
     async def async_step_user(self, user_input=None) -> ConfigFlowResult:
+        return self.async_show_menu(step_id="user", menu_options=["keypad", "lock"])
+
+    # ---------- lock settings ----------
+    async def async_step_lock(self, user_input=None) -> ConfigFlowResult:
+        locks = discovered_keypads(self.hass, LOCK_MODELS)
+        configured = {e.data.get(CONF_ADDRESS) for e in self._async_current_entries()}
+        choices = {a: m for a, m in locks.items() if a not in configured}
+        if not choices:
+            return self.async_abort(reason="no_lock")
+        if user_input is not None:
+            self._address = user_input[CONF_ADDRESS]
+            self._model = choices[self._address]
+            await self.async_set_unique_id(self._address)
+            self._abort_if_unique_id_configured()
+            self._settings = {CONF_TYPE: "lock", **({"name": user_input["name"]} if user_input.get("name") else {})}
+            return await self.async_step_key()
+        return self.async_show_form(step_id="lock", data_schema=vol.Schema({
+            vol.Required(CONF_ADDRESS): selector.SelectSelector(selector.SelectSelectorConfig(
+                options=[selector.SelectOptionDict(value=a, label=f"{m} ({a})") for a, m in choices.items()],
+                mode=selector.SelectSelectorMode.DROPDOWN)),
+            vol.Optional("name"): selector.TextSelector()}))
+
+    # ---------- 1. keypad + bridge + persons ----------
+    async def async_step_keypad(self, user_input=None) -> ConfigFlowResult:
         keypads = discovered_keypads(self.hass)
         configured = {e.data.get(CONF_ADDRESS) for e in self._async_current_entries()}
         choices = {a: m for a, m in keypads.items() if a not in configured}
@@ -88,7 +114,7 @@ class KeypadManagerConfigFlow(ConfigFlow, domain=DOMAIN):
             vol.Optional("name"): selector.TextSelector(),
             vol.Optional(CONF_PERSONS, default=default_persons): _person_selector(),
         })
-        return self.async_show_form(step_id="user", data_schema=schema)
+        return self.async_show_form(step_id="keypad", data_schema=schema)
 
     # ---------- 2. encryption key ----------
     async def async_step_key(self, user_input=None) -> ConfigFlowResult:
@@ -165,6 +191,11 @@ class KeypadManagerConfigFlow(ConfigFlow, domain=DOMAIN):
                 options=[selector.SelectOptionDict(value=a, label=f"{m} ({a})") for a, m in choices.items()],
                 mode=selector.SelectSelectorMode.DROPDOWN))}),
             description_placeholders={"title": self._reauth_entry.title if self._reauth_entry else ""})
+
+    @classmethod
+    @callback
+    def async_supports_options_flow(cls, config_entry: ConfigEntry) -> bool:
+        return config_entry.data.get(CONF_TYPE) != "lock"
 
     @staticmethod
     @callback

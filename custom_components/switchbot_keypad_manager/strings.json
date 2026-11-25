@@ -1,16 +1,6 @@
 {
   "config": {
     "step": {
-      "user": {
-        "title": "Set up SwitchBot Keypad Manager",
-        "description": "Pick the keypad (seen by Home Assistant's Bluetooth or an ESPHome Bluetooth proxy) and the ESPHome keypad bridge that reports who unlocked.",
-        "data": {
-          "address": "Keypad",
-          "bridge": "Keypad bridge (ESPHome device)",
-          "name": "Name (optional)",
-          "persons": "People in the selection"
-        }
-      },
       "key": {
         "title": "Encryption key",
         "description": "The keypad encrypts its commands. Get the key with your SwitchBot account (used once, not stored) or enter it yourself.",
@@ -39,6 +29,31 @@
         "data": {
           "address": "Keypad"
         }
+      },
+      "keypad": {
+        "title": "Set up SwitchBot Keypad Manager",
+        "description": "Pick the keypad (seen by Home Assistant's Bluetooth or an ESPHome Bluetooth proxy) and the ESPHome keypad bridge that reports who unlocked.",
+        "data": {
+          "address": "Keypad",
+          "bridge": "Keypad bridge (ESPHome device)",
+          "name": "Name (optional)",
+          "persons": "People in the selection"
+        }
+      },
+      "user": {
+        "title": "What do you want to add?",
+        "menu_options": {
+          "keypad": "Keypad Vision (Pro) – user management",
+          "lock": "Lock Ultra – settings (speed, sound, auto-lock, night mode …)"
+        }
+      },
+      "lock": {
+        "title": "Lock settings",
+        "description": "Pick the lock (seen by Home Assistant's Bluetooth or an ESPHome Bluetooth proxy).",
+        "data": {
+          "address": "Lock",
+          "name": "Name (optional)"
+        }
       }
     },
     "error": {
@@ -49,7 +64,8 @@
     "abort": {
       "no_keypad": "No Keypad Vision (Pro) seen by Home Assistant's Bluetooth – move a Bluetooth proxy closer or touch the keypad to wake it.",
       "already_configured": "This keypad is already set up.",
-      "reauth_successful": "Connection updated."
+      "reauth_successful": "Connection updated.",
+      "no_lock": "No Lock Ultra seen by Home Assistant's Bluetooth."
     }
   },
   "options": {
@@ -208,6 +224,94 @@
           "sun": "Sunday",
           "off": "Off"
         }
+      },
+      "speed": {
+        "name": "Motor speed",
+        "state": {
+          "fast": "Fast",
+          "normal": "Normal",
+          "quiet": "Quiet"
+        }
+      },
+      "button_trigger": {
+        "name": "Button: press",
+        "state": {
+          "single": "Single press",
+          "double": "Double press"
+        }
+      },
+      "button_action": {
+        "name": "Button: action",
+        "state": {
+          "lock_only": "Lock only",
+          "unlock_only": "Unlock only",
+          "toggle": "Lock/unlock"
+        }
+      },
+      "night_speed": {
+        "name": "Night mode: motor speed",
+        "state": {
+          "fast": "Fast",
+          "normal": "Normal",
+          "quiet": "Quiet"
+        }
+      },
+      "night_lock_position": {
+        "name": "Night mode: lock position",
+        "state": {
+          "full": "Fully locked",
+          "half": "Half locked"
+        }
+      },
+      "kp_trigger": {
+        "name": "Detection trigger",
+        "state": {
+          "auto": "Auto",
+          "manual": "Manual",
+          "schedule": "Schedule (set in the app)"
+        }
+      },
+      "kp_sensitivity": {
+        "name": "Detection sensitivity",
+        "state": {
+          "low": "Low",
+          "medium": "Medium",
+          "high": "High"
+        }
+      },
+      "kp_fast_unlock": {
+        "name": "Fast unlock",
+        "state": {
+          "off": "Off",
+          "always": "Always on",
+          "auto": "Auto"
+        }
+      },
+      "kp_voice_volume": {
+        "name": "Voice prompt volume",
+        "state": {
+          "mute": "Mute",
+          "low": "Low",
+          "medium": "Medium",
+          "high": "High"
+        }
+      },
+      "kp_tone_volume": {
+        "name": "Signal tone volume",
+        "state": {
+          "mute": "Mute",
+          "low": "Low",
+          "medium": "Medium",
+          "high": "High"
+        }
+      },
+      "kp_backlight": {
+        "name": "Backlight",
+        "state": {
+          "off": "Off",
+          "auto": "Auto",
+          "on": "On"
+        }
       }
     },
     "button": {
@@ -231,11 +335,62 @@
       },
       "delete_all": {
         "name": "Delete everything (keypad + list)"
+      },
+      "refresh": {
+        "name": "Read settings"
+      },
+      "kp_refresh": {
+        "name": "Read keypad settings"
       }
     },
     "switch": {
       "approval": {
         "name": "Approve unlocks"
+      },
+      "light": {
+        "name": "LED light"
+      },
+      "sound": {
+        "name": "Sound"
+      },
+      "button": {
+        "name": "Button on the lock"
+      },
+      "half_lock": {
+        "name": "Half lock"
+      },
+      "auto_lock": {
+        "name": "Auto-lock"
+      },
+      "pause_auto_lock": {
+        "name": "Pause auto-lock"
+      },
+      "ibeacon": {
+        "name": "iBeacon"
+      },
+      "night_on": {
+        "name": "Night mode"
+      },
+      "night_sound": {
+        "name": "Night mode: sound"
+      },
+      "night_auto_lock": {
+        "name": "Night mode: auto-lock"
+      },
+      "night_auto_unlock": {
+        "name": "Night mode: auto-unlock allowed"
+      },
+      "night_lock_at_start": {
+        "name": "Night mode: lock when it starts"
+      },
+      "kp_lock_button": {
+        "name": "Lock button"
+      },
+      "kp_keypad_disabled": {
+        "name": "Keypad disabled"
+      },
+      "kp_key_tone": {
+        "name": "Key tone"
       }
     },
     "text": {
@@ -261,6 +416,26 @@
       },
       "entry_until_3": {
         "name": "Time window 3 until"
+      },
+      "night_start": {
+        "name": "Night mode from"
+      },
+      "night_end": {
+        "name": "Night mode until"
+      }
+    },
+    "number": {
+      "auto_lock_delay": {
+        "name": "Auto-lock after"
+      },
+      "night_auto_lock_delay": {
+        "name": "Night mode: auto-lock after"
+      },
+      "kp_deactivation_interval": {
+        "name": "Deactivation interval"
+      },
+      "kp_backlight_level": {
+        "name": "Backlight level"
       }
     }
   },

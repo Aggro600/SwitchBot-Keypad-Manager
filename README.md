@@ -31,6 +31,11 @@ fingerprints, faces, palms, PIN codes and NFC cards, see *who* unlocked *how*, a
 - **Sync** – compares the counts stored on the keypad with the list and shows credentials without a name
   (e.g. created in the SwitchBot app). Assign them by unlocking once and pressing *Assign last unlock*. Unknown
   credentials have their own rule (also *automation only*) – e.g. "every unlock only runs my door script".
+- **Keypad settings** – detection trigger and sensitivity, deactivation interval, fast unlock, voice and signal tone
+  volume, key tone, backlight and brightness, lock button, disable the keypad – the same as in the SwitchBot app.
+- **Lock Ultra settings** (add the lock as a second entry) – motor speed (fast / normal / quiet), LED light, sound,
+  auto-lock and its delay, pause auto-lock, half lock, the button on the lock (press, action), iBeacon and the whole
+  **night mode** (from/until, speed, sound, lock at start, full/half lock, auto-lock, auto-unlock).
 - **Selection only** – everything works with dropdowns and buttons; free text is optional (new person name).
 - Several keypads: add the integration once per keypad.
 
@@ -175,6 +180,29 @@ The complete user management as **one card** – including a live box *“What h
 [docs/dashboard-card.en.yaml](docs/dashboard-card.en.yaml) (English UI) or
 [docs/dashboard-card.de.yaml](docs/dashboard-card.de.yaml) (German UI) and replace the entity prefix
 (`front_door` / `keypad_haustur`) with yours. A larger sections view is in [docs/dashboard.yaml](docs/dashboard.yaml).
+
+## Keypad and lock settings
+
+The keypad entry also gets **configuration entities** for the keypad itself:
+
+| Entity | Values |
+|---|---|
+| Detection trigger | auto / manual / schedule (the schedule times are set in the SwitchBot app) |
+| Detection sensitivity | low / medium / high |
+| Deactivation interval | 5–60 s |
+| Fast unlock | off / always on / auto |
+| Voice prompt volume, signal tone volume | mute / low / medium / high |
+| Key tone, lock button, keypad disabled | on / off – *keypad disabled* means nobody can unlock at the keypad |
+| Backlight, brightness | off / auto / on, 1–5 |
+
+**Lock Ultra:** *Add integration → SwitchBot Keypad Manager → Lock Ultra – settings*, pick the lock and get its key
+(SwitchBot account or manual). Entities: motor speed, LED light, sound, auto-lock + delay, pause auto-lock, half lock,
+button on the lock (on, single/double press, lock only / unlock only / lock-unlock), iBeacon, night mode with all its
+options. The lock force (soft/standard/strong) is intentionally not offered – the lock must be re-calibrated after it.
+
+Settings are read on start, every 12 h, after every change and with the *Read settings* button; the Bluetooth
+connection is closed right after each read/write. Every setting was verified on hardware (Keypad Vision Pro, Lock Ultra:
+change, read back, restore). A sections example with both is in [docs/dashboard.yaml](docs/dashboard.yaml).
 
 ## Actions and event
 

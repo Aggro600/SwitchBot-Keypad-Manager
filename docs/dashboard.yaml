@@ -219,3 +219,159 @@ sections:
         | Only when someone is home | opens only when someone is home |
 
         **Fallback** (Home Assistant down or no answer within 2 s): *open for every recognised credential* / *only entries allowed for the fallback* (*Fallback for the entry*) / *nobody* – then the door stays locked without Home Assistant. Stored on the bridge, works without Wi-Fi.
+  - type: grid
+    cards:
+    - type: heading
+      heading: Keypad settings
+    - type: tile
+      entity: select.front_door_detection_trigger
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: select.front_door_detection_sensitivity
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: number.front_door_deactivation_interval
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: select.front_door_fast_unlock
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: select.front_door_voice_prompt_volume
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: select.front_door_signal_tone_volume
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: switch.front_door_key_tone
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: select.front_door_backlight
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: number.front_door_backlight_level
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: switch.front_door_lock_button
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: switch.front_door_keypad_disabled
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: button.front_door_read_keypad_settings
+      grid_options:
+        columns: 6
+  - type: grid
+    cards:
+    - type: heading
+      heading: 'Lock settings (separate entry: Add integration → Lock Ultra)'
+    - type: tile
+      entity: select.front_door_lock_motor_speed
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: switch.front_door_lock_led_light
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: switch.front_door_lock_sound
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: switch.front_door_lock_auto_lock
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: number.front_door_lock_auto_lock_after
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: switch.front_door_lock_pause_auto_lock
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: switch.front_door_lock_half_lock
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: switch.front_door_lock_button_on_the_lock
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: select.front_door_lock_button_press
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: select.front_door_lock_button_action
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: switch.front_door_lock_ibeacon
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: button.front_door_lock_read_settings
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: switch.front_door_lock_night_mode
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: time.front_door_lock_night_mode_from
+      grid_options:
+        columns: 6
+      visibility: &id001
+      - condition: state
+        entity: switch.front_door_lock_night_mode
+        state: 'on'
+    - type: tile
+      entity: time.front_door_lock_night_mode_until
+      grid_options:
+        columns: 6
+      visibility: *id001
+    - type: tile
+      entity: select.front_door_lock_night_mode_motor_speed
+      grid_options:
+        columns: 6
+      visibility: *id001
+    - type: tile
+      entity: switch.front_door_lock_night_mode_sound
+      grid_options:
+        columns: 6
+      visibility: *id001
+    - type: tile
+      entity: switch.front_door_lock_night_mode_lock_when_it_starts
+      grid_options:
+        columns: 6
+      visibility: *id001
+    - type: tile
+      entity: select.front_door_lock_night_mode_lock_position
+      grid_options:
+        columns: 6
+      visibility: *id001
+    - type: tile
+      entity: switch.front_door_lock_night_mode_auto_lock
+      grid_options:
+        columns: 6
+      visibility: *id001
+    - type: tile
+      entity: number.front_door_lock_night_mode_auto_lock_after
+      grid_options:
+        columns: 6
+      visibility: *id001
+    - type: tile
+      entity: switch.front_door_lock_night_mode_auto_unlock_allowed
+      grid_options:
+        columns: 6
+      visibility: *id001

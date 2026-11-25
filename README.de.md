@@ -27,6 +27,14 @@ nicht erreichbar ist.
 - **Abgleich:** vergleicht die Anzahl im Keypad mit der Liste und zeigt Zugänge ohne Namen (z. B. aus der
   SwitchBot-App). Zuordnen: einmal damit entsperren, *Letzte Entsperrung zuordnen*. Für unbekannte Zugänge gibt es
   eine eigene Regel (auch *Nur Automation*) – z. B. „jedes Entsperren startet nur mein Tür-Skript“.
+- **Keypad-Einstellungen:** Erkennungsauslöser und -empfindlichkeit, Deaktivierungsintervall, Fast Unlock,
+  Lautstärke Sprachansage und Signaltöne, Tastenton, Hintergrundbeleuchtung und Helligkeit, Verriegelungstaste,
+  Keypad deaktivieren – wie in der SwitchBot-App.
+- **Lock-Ultra-Einstellungen** (Schloss als zweiten Eintrag hinzufügen): Motorgeschwindigkeit (schnell/normal/leise),
+  LED, Ton, automatisch verriegeln + Zeit, pausieren, halb verriegeln, Taste am Schloss (Drücken, Aktion), iBeacon und
+  der komplette **Nachtmodus** (von/bis, Geschwindigkeit, Ton, bei Beginn verriegeln, ganz/halb, Auto-Verriegeln,
+  Auto-Entriegeln). Die Schlosskraft fehlt absichtlich (danach müsste neu kalibriert werden). Gelesen wird beim Start,
+  alle 12 h, nach jeder Änderung und per Knopf; alles an echter Hardware geprüft.
 - **Nur Auswahl:** alles über Auswahllisten und Knöpfe; Freitext nur optional (neue Person).
 - Mehrere Keypads: Integration je Keypad einmal hinzufügen.
 

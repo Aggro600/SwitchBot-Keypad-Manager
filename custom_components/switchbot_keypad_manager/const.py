@@ -7,6 +7,8 @@ CONF_MODEL = "model"                 # "Keypad Vision" / "Keypad Vision Pro" (Py
 CONF_KEY_ID = "key_id"
 CONF_ENCRYPTION_KEY = "encryption_key"
 KEYPAD_MODELS = ("Keypad Vision", "Keypad Vision Pro")
+LOCK_MODELS = ("Lock Ultra",)          # lock settings (verified on a Lock Ultra)
+CONF_TYPE = "type"                   # "lock" for a lock-settings entry, missing = keypad
 CONF_BRIDGE = "bridge"               # "bridge" value in the keypad bridge event (ESPHome device name)
 CONF_PERSONS = "persons"             # person.* entities offered in the person selection
 

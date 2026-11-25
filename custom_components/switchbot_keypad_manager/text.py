@@ -8,6 +8,10 @@ from .entity import KeypadEntity
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
+    if entry.data.get("type") == "lock":
+        from .lock import lock_entities
+        async_add_entities(lock_entities("text", hass.data[DOMAIN][entry.entry_id]))
+        return
     async_add_entities([NewPerson(hass.data[DOMAIN][entry.entry_id])])
 
 

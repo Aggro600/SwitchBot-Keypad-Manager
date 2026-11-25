@@ -1,16 +1,6 @@
 {
   "config": {
     "step": {
-      "user": {
-        "title": "SwitchBot Keypad Manager einrichten",
-        "description": "Keypad wählen (sichtbar über Bluetooth von Home Assistant oder einen ESPHome-Bluetooth-Proxy) und die ESPHome-Keypad-Bridge, die meldet, wer entsperrt hat.",
-        "data": {
-          "address": "Keypad",
-          "bridge": "Keypad-Bridge (ESPHome-Gerät)",
-          "name": "Name (optional)",
-          "persons": "Personen in der Auswahl"
-        }
-      },
       "key": {
         "title": "Schlüssel des Keypads",
         "description": "Das Keypad verschlüsselt seine Befehle. Schlüssel mit dem SwitchBot-Konto holen (nur einmal benutzt, nicht gespeichert) oder selbst eingeben.",
@@ -39,6 +29,31 @@
         "data": {
           "address": "Keypad"
         }
+      },
+      "keypad": {
+        "title": "SwitchBot Keypad Manager einrichten",
+        "description": "Keypad wählen (sichtbar über Bluetooth von Home Assistant oder einen ESPHome-Bluetooth-Proxy) und die ESPHome-Keypad-Bridge, die meldet, wer entsperrt hat.",
+        "data": {
+          "address": "Keypad",
+          "bridge": "Keypad-Bridge (ESPHome-Gerät)",
+          "name": "Name (optional)",
+          "persons": "Personen in der Auswahl"
+        }
+      },
+      "user": {
+        "title": "Was möchtest du hinzufügen?",
+        "menu_options": {
+          "keypad": "Keypad Vision (Pro) – Benutzerverwaltung",
+          "lock": "Lock Ultra – Einstellungen (Geschwindigkeit, Ton, Auto-Verriegeln, Nachtmodus …)"
+        }
+      },
+      "lock": {
+        "title": "Schloss-Einstellungen",
+        "description": "Schloss wählen (sichtbar über Bluetooth von Home Assistant oder einen ESPHome-Bluetooth-Proxy).",
+        "data": {
+          "address": "Schloss",
+          "name": "Name (optional)"
+        }
       }
     },
     "error": {
@@ -49,7 +64,8 @@
     "abort": {
       "no_keypad": "Kein Keypad Vision (Pro) über Bluetooth zu sehen – Bluetooth-Proxy näher stellen oder das Keypad antippen, damit es sendet.",
       "already_configured": "Dieses Keypad ist schon eingerichtet.",
-      "reauth_successful": "Verbindung aktualisiert."
+      "reauth_successful": "Verbindung aktualisiert.",
+      "no_lock": "Kein Lock Ultra über Bluetooth zu sehen."
     }
   },
   "options": {
@@ -208,6 +224,94 @@
           "sun": "Sonntag",
           "off": "Aus"
         }
+      },
+      "speed": {
+        "name": "Motorgeschwindigkeit",
+        "state": {
+          "fast": "Schnell",
+          "normal": "Normal",
+          "quiet": "Leise"
+        }
+      },
+      "button_trigger": {
+        "name": "Taste: Drücken",
+        "state": {
+          "single": "Einmal drücken",
+          "double": "Doppelt drücken"
+        }
+      },
+      "button_action": {
+        "name": "Taste: Aktion",
+        "state": {
+          "lock_only": "Nur verriegeln",
+          "unlock_only": "Nur entriegeln",
+          "toggle": "Ver-/Entriegeln"
+        }
+      },
+      "night_speed": {
+        "name": "Nachtmodus: Motorgeschwindigkeit",
+        "state": {
+          "fast": "Schnell",
+          "normal": "Normal",
+          "quiet": "Leise"
+        }
+      },
+      "night_lock_position": {
+        "name": "Nachtmodus: Verriegeln",
+        "state": {
+          "full": "Ganz verriegeln",
+          "half": "Halb verriegeln"
+        }
+      },
+      "kp_trigger": {
+        "name": "Erkennungsauslöser",
+        "state": {
+          "auto": "Auto",
+          "manual": "Manuell",
+          "schedule": "Zeitplan (in der App)"
+        }
+      },
+      "kp_sensitivity": {
+        "name": "Erkennungsempfindlichkeit",
+        "state": {
+          "low": "Niedrig",
+          "medium": "Mittel",
+          "high": "Hoch"
+        }
+      },
+      "kp_fast_unlock": {
+        "name": "Fast Unlock",
+        "state": {
+          "off": "Aus",
+          "always": "Immer ein",
+          "auto": "Auto"
+        }
+      },
+      "kp_voice_volume": {
+        "name": "Lautstärke Sprachansage",
+        "state": {
+          "mute": "Stumm",
+          "low": "Niedrig",
+          "medium": "Mittel",
+          "high": "Hoch"
+        }
+      },
+      "kp_tone_volume": {
+        "name": "Lautstärke Signaltöne",
+        "state": {
+          "mute": "Stumm",
+          "low": "Niedrig",
+          "medium": "Mittel",
+          "high": "Hoch"
+        }
+      },
+      "kp_backlight": {
+        "name": "Hintergrundbeleuchtung",
+        "state": {
+          "off": "Aus",
+          "auto": "Automatisch",
+          "on": "An"
+        }
       }
     },
     "button": {
@@ -231,11 +335,62 @@
       },
       "delete_all": {
         "name": "Alles löschen (Keypad + Liste)"
+      },
+      "refresh": {
+        "name": "Einstellungen lesen"
+      },
+      "kp_refresh": {
+        "name": "Keypad-Einstellungen lesen"
       }
     },
     "switch": {
       "approval": {
         "name": "Entsperren freigeben"
+      },
+      "light": {
+        "name": "LED-Licht"
+      },
+      "sound": {
+        "name": "Ton"
+      },
+      "button": {
+        "name": "Taste am Schloss"
+      },
+      "half_lock": {
+        "name": "Halb verriegeln"
+      },
+      "auto_lock": {
+        "name": "Automatisch verriegeln"
+      },
+      "pause_auto_lock": {
+        "name": "Auto-Verriegeln pausieren"
+      },
+      "ibeacon": {
+        "name": "iBeacon"
+      },
+      "night_on": {
+        "name": "Nachtmodus"
+      },
+      "night_sound": {
+        "name": "Nachtmodus: Ton"
+      },
+      "night_auto_lock": {
+        "name": "Nachtmodus: automatisch verriegeln"
+      },
+      "night_auto_unlock": {
+        "name": "Nachtmodus: automatisch entriegeln erlaubt"
+      },
+      "night_lock_at_start": {
+        "name": "Nachtmodus: bei Beginn verriegeln"
+      },
+      "kp_lock_button": {
+        "name": "Verriegelungstaste"
+      },
+      "kp_keypad_disabled": {
+        "name": "Keypad deaktiviert"
+      },
+      "kp_key_tone": {
+        "name": "Tastenton"
       }
     },
     "text": {
@@ -261,6 +416,26 @@
       },
       "entry_until_3": {
         "name": "Zeitfenster 3 bis"
+      },
+      "night_start": {
+        "name": "Nachtmodus von"
+      },
+      "night_end": {
+        "name": "Nachtmodus bis"
+      }
+    },
+    "number": {
+      "auto_lock_delay": {
+        "name": "Automatisch verriegeln nach"
+      },
+      "night_auto_lock_delay": {
+        "name": "Nachtmodus: verriegeln nach"
+      },
+      "kp_deactivation_interval": {
+        "name": "Deaktivierungsintervall"
+      },
+      "kp_backlight_level": {
+        "name": "Helligkeit"
       }
     }
   },
