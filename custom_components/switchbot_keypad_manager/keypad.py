@@ -1,11 +1,10 @@
 """BLE commands to enroll and delete credentials on a SwitchBot Keypad Vision / Vision Pro.
 
-Commands are sent through the device object of Home Assistant's SwitchBot integration, which already
-handles the encryption key, Bluetooth proxies and AES-CTR framing. See docs/PROTOCOL.md for details.
+The integration has its own connection: a PySwitchbot `SwitchbotKeypadVision` device with the encryption key from the
+config flow, connected through Home Assistant's Bluetooth (adapters and ESPHome proxies). See docs/PROTOCOL.md.
 
 Command group (byte after 570F52): 02 PIN, 03 NFC, 04 fingerprint, 05 face, 06 palm.
-Verified on a Keypad Vision Pro: PIN, fingerprint and face enroll/delete. Palm confirm/delete follow the
-face scheme and are not verified yet.
+Verified on a Keypad Vision Pro (enroll, keypad count before/after, delete): PIN, NFC card, fingerprint, face, palm.
 """
 from __future__ import annotations
 
@@ -15,7 +14,6 @@ import logging
 import secrets
 import time
 
-from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
@@ -35,6 +33,14 @@ class KeypadError(HomeAssistantError):
     """Connection or protocol error talking to the keypad."""
 
 
+class KeyRejected(KeypadError):
+    """The keypad answers 05 to a basic query - the encryption key is not (or no longer) valid."""
+
+
+class NotStored(KeypadError):
+    """The credential is not (or no longer) stored on the keypad."""
+
+
 def _h(n: int) -> str:
     return f"{n & 0xFF:02X}"
 
@@ -43,26 +49,66 @@ def _ts(seconds: float) -> str:
     return f"{int(seconds) & 0xFFFFFFFF:08X}"
 
 
-class Keypad:
-    """Talks to one Keypad Vision (Pro) through the SwitchBot integration."""
+class _KeypadDevice:
+    """Factory for the PySwitchbot device class (imported lazily, the library ships with Home Assistant)."""
 
-    def __init__(self, hass: HomeAssistant, switchbot_entry_id: str) -> None:
+    cls = None
+
+    @classmethod
+    def get(cls):
+        if cls.cls is None:
+            from switchbot import SwitchbotKeypadVision
+
+            class KeypadVision(SwitchbotKeypadVision):
+                """Keypad Vision (Pro) with raw credential commands (enroll/delete are not in PySwitchbot yet)."""
+
+                async def raw_command(self, hexcmd: str) -> bytes | None:
+                    return await self._send_command(hexcmd)
+
+                async def release(self) -> None:
+                    """Drop the Bluetooth connection now (instead of after 8.5 s) so the keypad is free again."""
+                    await self._execute_disconnect()
+
+            cls.cls = KeypadVision
+        return cls.cls
+
+
+class Keypad:
+    """Talks to one Keypad Vision (Pro) directly over Bluetooth."""
+
+    def __init__(self, hass: HomeAssistant, address: str, model: str, key_id: str, encryption_key: str) -> None:
         self.hass = hass
-        self.entry_id = switchbot_entry_id
+        self.address = address
+        self.model = model
+        self.key_id = key_id
+        self.encryption_key = encryption_key
         self.lock = asyncio.Lock()
+        self._dev = None
 
     def _device(self):
-        entry = self.hass.config_entries.async_get_entry(self.entry_id)
-        if entry is None or entry.state is not ConfigEntryState.LOADED or getattr(entry, "runtime_data", None) is None:
-            raise KeypadError("Keypad is not loaded in the SwitchBot integration")
-        return entry.runtime_data.device
+        from homeassistant.components import bluetooth
+        from switchbot import SwitchbotModel, parse_advertisement_data
+        if not (self.address and self.key_id and self.encryption_key):
+            raise KeypadError("Keypad address/key missing – open the integration and re-authenticate")
+        info = bluetooth.async_last_service_info(self.hass, self.address, connectable=True)
+        ble = info.device if info else bluetooth.async_ble_device_from_address(self.hass, self.address, connectable=True)
+        if ble is None:
+            raise KeypadError("Keypad is not in Bluetooth range (no adapter or proxy sees it)")
+        if self._dev is None:
+            self._dev = _KeypadDevice.get()(ble, self.key_id, self.encryption_key, model=SwitchbotModel(self.model))
+        elif info is not None:
+            adv = parse_advertisement_data(info.device, info.advertisement)
+            if adv is not None:
+                self._dev.update_from_advertisement(adv)
+        return self._dev
 
     async def command(self, hexcmd: str, attempts: int = 4) -> bytes:
         """Send a command; a 'busy' (09) reply is retried."""
-        device = self._device()
         for i in range(attempts):
             try:
-                reply = await device._send_command(hexcmd)  # noqa: SLF001
+                reply = await self._device().raw_command(hexcmd)
+            except KeypadError:
+                raise
             except Exception as err:  # noqa: BLE001 - any Bluetooth error
                 _LOGGER.debug("Command %s failed: %s", hexcmd[:12], err)
                 reply = None
@@ -71,15 +117,38 @@ class Keypad:
             await asyncio.sleep(2 + i * 2)
         raise KeypadError("Keypad does not respond (out of range or busy)")
 
+    async def release(self) -> None:
+        """Disconnect right away after a workflow - an open connection keeps the keypad busy."""
+        if self._dev is not None:
+            try:
+                await self._dev.release()
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Disconnect failed: %s", err)
+
+    async def enroll(self, kind: str, **kwargs) -> dict:
+        """Enroll a new credential (see _enroll); the connection is dropped afterwards."""
+        try:
+            return await self._enroll(kind, **kwargs)
+        finally:
+            await self.release()
+
+    async def delete_probe(self, kind: str, candidates: list[int], before: int, cancel=None, progress=None) -> int | None:
+        try:
+            return await self._delete_probe(kind, candidates, before, cancel, progress)
+        finally:
+            await self.release()
+
     async def _status(self) -> bytes | None:
         """Enrollment status; BUSY while the keypad is scanning, None on no answer."""
         try:
-            return await self._device()._send_command("570F530106")  # noqa: SLF001
+            return await self._device().raw_command("570F530106")
         except Exception:  # noqa: BLE001
             return None
 
     async def counts(self) -> dict[str, int]:
         data = await self.command("570F530100")
+        if data in (b"\x04", b"\x05"):
+            raise KeyRejected("The keypad rejects the encryption key (keypad reset or re-added?) – re-authenticate")
         if data[0] != 1 or len(data) < 6:
             raise KeypadError(f"Unexpected count reply: {data.hex()}")
         result = {PIN: data[1], NFC: data[2], FINGERPRINT: data[3], "duress_pin": data[4], "duress_fingerprint": data[5]}
@@ -87,6 +156,15 @@ class Keypad:
             result[FACE] = data[6]
             result[PALM] = data[7]
         return result
+
+    async def nfc_exists(self, slot: int) -> bool:
+        """NFC card stored in this slot? (570F530301<slot>: 01… = yes, 02 = no).
+
+        Needed because deleting an EMPTY NFC slot still decrements the keypad's card counter - it underflows to 255
+        and the keypad then refuses every new card ("10").
+        """
+        reply = await self.command(f"570F530301{_h(slot)}")
+        return bool(reply) and reply[0] == 1
 
     async def _count(self, kind: str, reply: bytes) -> int | None:
         """Remaining count after a delete: finger/face/palm answer `01 <count>`, PIN/NFC need a count query."""
@@ -97,7 +175,7 @@ class Keypad:
         except KeypadError:
             return None
 
-    async def delete_probe(self, kind: str, candidates: list[int], before: int,
+    async def _delete_probe(self, kind: str, candidates: list[int], before: int,
                            cancel: asyncio.Event | None = None,
                            progress: Callable[[int], Awaitable[None] | None] | None = None) -> int | None:
         """Delete the first credential of `kind` found in `candidates`; returns its slot or None.
@@ -113,6 +191,8 @@ class Keypad:
                     result = progress(slot)
                     if asyncio.iscoroutine(result):
                         await result
+                if kind == NFC and not await self.nfc_exists(slot):
+                    continue
                 reply = await self.command(DELETE[kind] + _h(slot))
                 after = await self._count(kind, reply)
                 if after is not None and after < before:
@@ -121,11 +201,16 @@ class Keypad:
 
     async def delete(self, kind: str, slot: int) -> None:
         async with self.lock:
-            data = await self.command(DELETE[kind] + _h(slot))
+            try:
+                if kind == NFC and not await self.nfc_exists(slot):
+                    raise NotStored("No card stored in this slot")
+                data = await self.command(DELETE[kind] + _h(slot))
+            finally:
+                await self.release()
             if data[0] != 1:
                 raise KeypadError(f"Keypad refused the deletion ({data.hex()})")
 
-    async def enroll(self, kind: str, *, valid_from: float | None = None, valid_until: float | None = None,
+    async def _enroll(self, kind: str, *, valid_from: float | None = None, valid_until: float | None = None,
                      once: bool = False, status: Callable[[str], Awaitable[None] | None] | None = None,
                      cancel: asyncio.Event | None = None) -> dict:
         """Enroll a new credential. Returns {'slot': n, 'pin': '…' (PIN only)}.
@@ -183,8 +268,11 @@ class Keypad:
                     raise KeypadError(self._reason(outcome, ""))
                 await self.command(f"570F52{group}05{_h(slot)}")
                 await self._verify(kind, slot, before)
+                await self.command(f"570F52{group}06", attempts=2)   # leave enrollment mode
                 return {"slot": slot}
             if kind == NFC:
+                # like the SwitchBot app: poll until byte2 is 01 (read) or 03 (already enrolled); 04 only means
+                # "no card in the last 5 s" and the keypad keeps listening
                 data = await self.command("570F520301" + ("01" if limited else "00") + "02")
                 if data[0] != 1:
                     raise KeypadError(f"Keypad did not start the enrollment ({data.hex()})")
@@ -193,7 +281,7 @@ class Keypad:
                 outcome = await self._wait(
                     duplicate=lambda a: len(a) > 2 and a[0] == 1 and a[2] == 3,
                     done=lambda a: len(a) > 2 and a[0] == 1 and a[2] == 1,
-                    failed=lambda a: len(a) > 2 and a[0] == 1 and a[2] in (2, 4), cancel=cancel)
+                    failed=lambda a: len(a) > 2 and a[0] == 1 and a[2] == 2, cancel=cancel)
                 if outcome != "done":
                     await self._cleanup(NFC, slot)
                     raise KeypadError(self._reason(outcome, "This card is already enrolled"))
@@ -282,6 +370,8 @@ class Keypad:
 
     async def _cleanup(self, kind: str, slot: int) -> None:
         """Free a half-enrolled slot again."""
+        if kind == NFC:
+            return   # never delete an unconfirmed NFC slot - it corrupts the card counter (see nfc_exists)
         try:
             if kind in (FACE, PALM):
                 await self.command(f"570F52{'05' if kind == FACE else '06'}06", attempts=2)

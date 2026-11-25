@@ -24,10 +24,10 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    BRIDGE_UNLOCK_EVENT, CONF_BRIDGE, CONF_KEYPAD_ENTRY, CONF_PERSONS, DOMAIN, FACE, FINGERPRINT, KINDS, NFC, NO_ENTRY, PIN,
+    BRIDGE_UNLOCK_EVENT, CONF_ADDRESS, CONF_BRIDGE, CONF_ENCRYPTION_KEY, CONF_KEY_ID, CONF_MODEL, CONF_PERSONS, DOMAIN, FACE, FINGERPRINT, PALM, KINDS, NFC, NO_ENTRY, PIN,
     RULE_OPTIONS, UNLOCKED_EVENT, VALIDITY_OPTIONS, WHAT_OPTIONS, WINDOW_DEFAULT, WINDOWS, DAY_NAMES,
 )
-from .keypad import DELETE as DELETE_CMD, SLOT_RANGE, Keypad, KeypadError
+from .keypad import DELETE as DELETE_CMD, SLOT_RANGE, Keypad, KeypadError, KeyRejected, NotStored
 from .texts import detail_text, texts
 
 _LOGGER = logging.getLogger(__name__)
@@ -49,12 +49,12 @@ def reported_index(keypad_slot: int) -> int:
 def keypad_slot_from_index(kind: str, index: int) -> int | None:
     """Keypad slot of a credential known only from an unlock (verified for fingerprints and faces).
 
-    Fingerprints live in keypad slots 10+ and are reported as slot - 10; faces are reported unchanged. For PIN,
-    NFC and palm the mapping is not verified, so those stay unknown (list-only delete).
+    Fingerprints live in keypad slots 10+ and are reported as slot - 10; faces and palms are reported unchanged
+    (verified). For PIN and NFC the slot is found on delete (NFC: only slots that really hold a card).
     """
     if kind == FINGERPRINT:
         return index + 10
-    if kind == FACE:
+    if kind in (FACE, PALM):
         return index
     return None
 
@@ -65,7 +65,8 @@ class Manager:
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.hass = hass
         self.entry = entry
-        self.keypad = Keypad(hass, entry.data[CONF_KEYPAD_ENTRY])
+        self.keypad = Keypad(hass, entry.data.get(CONF_ADDRESS, ""), entry.data.get(CONF_MODEL, "Keypad Vision Pro"),
+                             entry.data.get(CONF_KEY_ID, ""), entry.data.get(CONF_ENCRYPTION_KEY, ""))
         self.store = Store(hass, STORAGE_VERSION, f"{DOMAIN}.{entry.entry_id}")
         self.entries: list[dict] = []
         self.extra_persons: list[str] = []
@@ -438,6 +439,8 @@ class Manager:
                     if slot % 5 == 0:
                         await self.set_status("searching", kind=self.t["kind"][kind], slot=slot)
                     async with self.keypad.lock:
+                        if kind == NFC and not await self.keypad.nfc_exists(slot):
+                            continue
                         reply = await self.keypad.command(DELETE_CMD[kind] + f"{slot:02X}")
                         after = await self.keypad._count(kind, reply)  # noqa: SLF001
                     if after is not None:
@@ -448,6 +451,7 @@ class Manager:
             raise
         finally:
             await self._refresh_counts()
+            await self.keypad.release()
         left = {self.t["kind"][k]: v for k, v in self.counts.items() if k in KINDS and v}
         self.choice["entry"] = NO_ENTRY
         await self.save()
@@ -486,6 +490,8 @@ class Manager:
         await self.set_status("deleting", entry=self.label(entry))
         try:
             await self.keypad.delete(entry["kind"], entry["keypad_slot"])
+        except NotStored:
+            pass   # already gone on the keypad - just remove it from the list
         except KeypadError as err:
             await self.set_status("error", err=str(err))
             raise
@@ -497,7 +503,7 @@ class Manager:
 
     def what_of(self, entry: dict) -> str:
         """'What' option that describes an entry (for pre-filling the selects when editing)."""
-        if entry["kind"] == FINGERPRINT and entry.get("detail") in WHAT_OPTIONS:
+        if entry.get("detail") in WHAT_OPTIONS:      # finger or left/right palm
             return entry["detail"]
         return next((k for k, (kind, _) in WHAT_OPTIONS.items() if kind == entry["kind"] and kind != FINGERPRINT),
                     self.choice["what"])
@@ -544,9 +550,15 @@ class Manager:
         await self.set_status("querying")
         try:
             self.counts = await self.keypad.counts()
+        except KeyRejected as err:
+            self.entry.async_start_reauth(self.hass)
+            await self.set_status("error", err=str(err))
+            raise
         except KeypadError as err:
             await self.set_status("error", err=str(err))
             raise
+        finally:
+            await self.keypad.release()
         await self.save()
         diff = self.unassigned_counts()
         if diff:
@@ -596,19 +608,30 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
     base = {vol.Optional("config_entry_id"): cv.string}
     hass.services.async_register(DOMAIN, "enroll", enroll, schema=vol.Schema({
-        **base, vol.Required("person"): cv.string, vol.Required("what"): vol.In(list(WHAT_OPTIONS)),
+        **base, vol.Required("person"): cv.string, vol.Required("what"): vol.All(lambda v: "palm_right" if v == "palm" else v, vol.In(list(WHAT_OPTIONS))),
         vol.Optional("validity", default="permanent"): vol.In(VALIDITY_OPTIONS)}),
         supports_response=SupportsResponse.OPTIONAL)
     hass.services.async_register(DOMAIN, "delete", delete, schema=vol.Schema({**base, vol.Required("entry_id"): cv.string}))
     hass.services.async_register(DOMAIN, "sync", sync, schema=vol.Schema(base))
     hass.services.async_register(DOMAIN, "update", update, schema=vol.Schema({
         **base, vol.Required("entry_id"): cv.string, vol.Optional("person"): cv.string,
-        vol.Optional("what"): vol.In(list(WHAT_OPTIONS))}))
+        vol.Optional("what"): vol.All(lambda v: "palm_right" if v == "palm" else v, vol.In(list(WHAT_OPTIONS)))}))
+    return True
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """1.x used the SwitchBot integration's device; 2 has its own connection - the key is asked for by reauth."""
+    if entry.version == 1:
+        hass.config_entries.async_update_entry(entry, version=2)
     return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     manager = Manager(hass, entry)
+    if not (entry.data.get(CONF_ADDRESS) and entry.data.get(CONF_KEY_ID) and entry.data.get(CONF_ENCRYPTION_KEY)):
+        # set up with 1.x (through the SwitchBot integration): approval and unlock events keep working, enrolling and
+        # deleting need the keypad address and key once -> re-authentication
+        entry.async_start_reauth(hass)
     await manager.load()
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = manager
     entry.async_on_unload(hass.bus.async_listen(BRIDGE_UNLOCK_EVENT, manager.handle_bridge_event))

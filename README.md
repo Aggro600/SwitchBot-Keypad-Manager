@@ -12,7 +12,7 @@ fingerprints, faces, palms, PIN codes and NFC cards, see *who* unlocked *how*, a
 
 ## Features
 
-- **Enroll on the keypad from Home Assistant** – pick a person and what to enroll (10 fingers, face, palm,
+- **Enroll on the keypad from Home Assistant** – pick a person and what to enroll (10 fingers, face, left/right palm,
   random PIN, NFC card), press *Start enrollment*, go to the keypad. Slot and name are stored automatically.
 - **Delete – always on the keypad *and* in the list**, also credentials that were not enrolled here. Unknown ones
   appear in the selection as *Unknown – Face 1*, *Unknown – PIN code 1* …; the integration finds the keypad slot itself
@@ -39,7 +39,7 @@ fingerprints, faces, palms, PIN codes and NFC cards, see *who* unlocked *how*, a
 ```
              enroll / delete / count (BLE, encrypted)
  Home Assistant ───────────────────────────────────────────► Keypad Vision (Pro)
-   │  SwitchBot integration (key, Bluetooth proxy)                 │ unlock
+   │  own connection: PySwitchbot + HA Bluetooth / proxies         │ unlock
    │                                                               ▼
    │  ◄── event: who/how ───  ESP32 "keypad bridge" (ESPHome) ◄────┘
    │  ─── approve / deny ──►        │ relays the unlock (BLE)
@@ -48,8 +48,10 @@ fingerprints, faces, palms, PIN codes and NFC cards, see *who* unlocked *how*, a
 ```
 
 - **Credential management** uses the BLE commands of the keypad (documented in [docs/PROTOCOL.md](docs/PROTOCOL.md)).
-  They are sent through the device object of Home Assistant's own **SwitchBot** integration, which already
-  holds the encryption key and talks through your Bluetooth proxies – this integration has no radio code of its own.
+  The integration has its **own connection**: a PySwitchbot `SwitchbotKeypadVision` device (the library that ships
+  with Home Assistant) with the keypad's encryption key, talking through Home Assistant's Bluetooth – adapters and
+  ESPHome Bluetooth proxies. The key is retrieved once with your SwitchBot account in the setup dialog (not stored)
+  or entered manually. The SwitchBot integration is **not** needed.
 - **Who unlocked** comes from the community ESPHome component
   [switchbot-keypad-bridge](https://github.com/pierluigizagaria/switchbot-keypad-bridge) by *pierluigizagaria*
   (not part of this repository). The keypad is linked to an ESP32 that impersonates a lock, reports every unlock
@@ -60,7 +62,7 @@ fingerprints, faces, palms, PIN codes and NFC cards, see *who* unlocked *how*, a
 | | |
 |---|---|
 | Home Assistant | 2026.9 or newer |
-| Keypad | SwitchBot Keypad Vision or Keypad Vision Pro, added to Home Assistant's **SwitchBot** integration (Bluetooth, with your SwitchBot account so the encryption key is retrieved) |
+| Keypad | SwitchBot Keypad Vision or Keypad Vision Pro, set up in the SwitchBot app (your SwitchBot account is used once to get the encryption key) |
 | Bluetooth | a Bluetooth adapter or ESPHome Bluetooth proxy in range of the keypad |
 | For "who unlocked" and approval | an ESP32 with the [switchbot-keypad-bridge](https://github.com/pierluigizagaria/switchbot-keypad-bridge) |
 
@@ -71,7 +73,7 @@ Enrolling and deleting works without the bridge; the last-unlock sensor, rules a
 1. HACS → ⋮ → *Custom repositories* → add `https://github.com/Aggro600/SwitchBot-Keypad-Manager` (type *Integration*).
 2. Install **SwitchBot Keypad Manager**, restart Home Assistant.
 3. *Settings → Devices & services → Add integration → SwitchBot Keypad Manager*:
-   - **Keypad** – the keypad from the SwitchBot integration,
+   - **Keypad** – picked from the keypads Home Assistant's Bluetooth currently sees (touch the keypad to wake it),
    - **Keypad bridge** – the ESPHome device name of your bridge (can be changed later in the options),
    - **People in the selection** – `person` entities offered in the *Person* dropdown.
 
@@ -176,7 +178,7 @@ The complete user management as **one card** – including a live box *“What h
 
 ## Actions and event
 
-- `switchbot_keypad_manager.enroll` – `person`, `what` (`thumb_right` … `little_left`, `face`, `palm`,
+- `switchbot_keypad_manager.enroll` – `person`, `what` (`thumb_right` … `little_left`, `face`, `palm_right`, `palm_left`,
   `pin_random`, `nfc_card`), `validity` (`permanent`, `today`, `24h`, `1w`, `1m`, `once`); returns the entry
   and, for PINs, the generated code.
 - `switchbot_keypad_manager.update` – `entry_id`, optional `person` and `what` (the kind stays the same).
@@ -220,8 +222,15 @@ More examples (one combined automation vs. one automation per case): [docs/examp
 - **The keypad cannot list its credentials** (the list in the SwitchBot app lives in the SwitchBot cloud). Unknown
   credentials are therefore only known as a count; deleting one tries the keypad slots one by one until the count drops
   (PIN/card up to about a minute). Slots of known entries are never touched. The SwitchBot app may still show deleted ones.
-- **Palm**: start and status are verified; confirm/delete follow the face scheme and are not verified on every
-  firmware – please report results.
+- **Verified on hardware** (Keypad Vision Pro): enroll, unlock report and delete for PIN, NFC card, fingerprint, face
+  and left/right palm – each checked against the keypad's own count.
+- **NFC card:** hold the card to the keypad **within about 5 s** after *Enroll* – the keypad only listens that long.
+- **Never delete an empty NFC slot by hand** (e.g. with your own raw commands): the keypad still counts its card
+  counter down; below zero it reports 255 cards and refuses every new card until it is removed from and re-added to
+  the SwitchBot app. The integration checks that a slot holds a card before it deletes it.
+- **Upgrading from 1.x:** the integration asks once to re-authenticate (pick the keypad, get the key) – approval and
+  unlock events keep working meanwhile. After the keypad is removed and re-added in the SwitchBot app it gets a new
+  key; the integration then asks again.
 - After the bridge restarts, some keypads stop talking to it until they are power-cycled once.
 - SwitchBot may change the protocol with a firmware update.
 - Face and palm recognition re-arm about 20 s after an unlock.

@@ -26,7 +26,9 @@ class LastUnlock(KeypadEntity, SensorEntity):
             return None
         when = dt_util.parse_datetime(last["time"]).strftime("%d.%m. %H:%M")
         text = f"{last['text']} {self.manager.t['via']} {last['kind_text']} · {when}"
-        if last.get("allowed") is False:
+        if last.get("decision") == "event_only":
+            text += f" ({self.manager.t['event_only']})"
+        elif last.get("allowed") is False:
             text += f" ({self.manager.t['denied']})"
         return text[:255]
 

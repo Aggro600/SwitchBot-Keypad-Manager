@@ -2,19 +2,54 @@
   "config": {
     "step": {
       "user": {
-        "title": "SwitchBot Keypad Manager",
-        "description": "Pick the keypad from the SwitchBot integration and the ESPHome keypad bridge whose events tell who unlocked.",
+        "title": "Set up SwitchBot Keypad Manager",
+        "description": "Pick the keypad (seen by Home Assistant's Bluetooth or an ESPHome Bluetooth proxy) and the ESPHome keypad bridge that reports who unlocked.",
         "data": {
-          "keypad_entry": "Keypad",
+          "address": "Keypad",
           "bridge": "Keypad bridge (ESPHome device)",
           "name": "Name (optional)",
           "persons": "People in the selection"
         }
+      },
+      "key": {
+        "title": "Encryption key",
+        "description": "The keypad encrypts its commands. Get the key with your SwitchBot account (used once, not stored) or enter it yourself.",
+        "menu_options": {
+          "key_login": "With SwitchBot account",
+          "key_manual": "Enter key ID and key"
+        }
+      },
+      "key_login": {
+        "title": "SwitchBot account",
+        "data": {
+          "username": "E-mail",
+          "password": "Password"
+        }
+      },
+      "key_manual": {
+        "title": "Enter key",
+        "data": {
+          "key_id": "Key ID (2 characters)",
+          "encryption_key": "Encryption key (32 characters)"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Keypad connection",
+        "description": "Since 2.0 the integration talks to the keypad itself. Pick the keypad of {title} once, then the key.",
+        "data": {
+          "address": "Keypad"
+        }
       }
     },
+    "error": {
+      "auth_failed": "SwitchBot login failed",
+      "cannot_connect": "Cannot reach the SwitchBot cloud",
+      "encryption_key_invalid": "The keypad does not accept this key (or is out of range)"
+    },
     "abort": {
-      "no_keypad": "No Keypad Vision found in the SwitchBot integration.",
-      "already_configured": "This keypad is already set up."
+      "no_keypad": "No Keypad Vision (Pro) seen by Home Assistant's Bluetooth – move a Bluetooth proxy closer or touch the keypad to wake it.",
+      "already_configured": "This keypad is already set up.",
+      "reauth_successful": "Connection updated."
     }
   },
   "options": {
@@ -58,7 +93,8 @@
           "ring_left": "Ring finger (left)",
           "little_left": "Little finger (left)",
           "face": "Face",
-          "palm": "Palm",
+          "palm_right": "Palm (right)",
+          "palm_left": "Palm (left)",
           "pin_random": "PIN code (random)",
           "nfc_card": "NFC card"
         }
@@ -312,7 +348,8 @@
         "ring_left": "Ring finger (left)",
         "little_left": "Little finger (left)",
         "face": "Face",
-        "palm": "Palm",
+        "palm_right": "Palm (right)",
+        "palm_left": "Palm (left)",
         "pin_random": "PIN code (random)",
         "nfc_card": "NFC card"
       }

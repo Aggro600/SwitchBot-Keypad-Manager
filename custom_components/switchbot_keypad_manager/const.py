@@ -1,7 +1,12 @@
 """Constants for SwitchBot Keypad Manager."""
 DOMAIN = "switchbot_keypad_manager"
 
-CONF_KEYPAD_ENTRY = "keypad_entry"   # config entry of the SwitchBot integration (Keypad Vision / Pro)
+CONF_KEYPAD_ENTRY = "keypad_entry"   # 1.x only: config entry of the SwitchBot integration (replaced by own connection)
+CONF_ADDRESS = "address"             # Bluetooth address of the keypad
+CONF_MODEL = "model"                 # "Keypad Vision" / "Keypad Vision Pro" (PySwitchbot model name)
+CONF_KEY_ID = "key_id"
+CONF_ENCRYPTION_KEY = "encryption_key"
+KEYPAD_MODELS = ("Keypad Vision", "Keypad Vision Pro")
 CONF_BRIDGE = "bridge"               # "bridge" value in the keypad bridge event (ESPHome device name)
 CONF_PERSONS = "persons"             # person.* entities offered in the person selection
 
@@ -16,7 +21,7 @@ FINGERS = [f"{finger}_{side}" for side in ("right", "left")
            for finger in ("thumb", "index", "middle", "ring", "little")]
 # Option of the "what" select -> (kind, detail)
 WHAT_OPTIONS = {**{f: (FINGERPRINT, f) for f in FINGERS},
-                "face": (FACE, ""), "palm": (PALM, ""), "pin_random": (PIN, ""), "nfc_card": (NFC, "")}
+                "face": (FACE, ""), "palm_right": (PALM, "palm_right"), "palm_left": (PALM, "palm_left"), "pin_random": (PIN, ""), "nfc_card": (NFC, "")}
 
 VALIDITY_OPTIONS = ["permanent", "today", "24h", "1w", "1m", "once"]
 RULE_OPTIONS = ["always", "blocked", "event_only", "daytime", "weekdays", "someone_home"]

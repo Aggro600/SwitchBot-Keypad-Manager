@@ -28,13 +28,21 @@ Byte 4 (`570F52xx`) selects the credential group: `02` PIN, `03` NFC card, `04` 
 | Face confirm | `570F520505 <slot>` | `01 <slot> 01` |
 | Face test (app only) | `570F52050701` / `570F52050702` | |
 | Face delete | `570F520503 <slot>` | `01 …` |
-| **Palm** | as face with group `06` (start and status verified, confirm `570F520605`, delete `570F520603` derived) | |
+| **Palm** | as face with group `06`: end `570F520606`, start `570F5206010002`, status byte5 == 1, confirm `570F520605 <slot>`, delete `570F520603 <slot>` (verified) | |
 | **NFC** start | `570F520301 <type> 02` | `01 <slot>` |
 | NFC status | poll `570F530106` | `byte2`: 1 ok, 2 failed, 3 duplicate, 4 timeout |
 | NFC validity / confirm / delete | `570F520303 <slot> <from> <until>` / `570F520307 <slot>` / `570F520304 <slot>` | |
 
 Delete replies carry the remaining count: fingerprint/face/palm `01 <count>`, PIN `01 <count> …`, NFC `01`
 (use the count command). Deleting an empty slot succeeds without changing the count.
+
+NFC: the keypad listens for a card only ~5 s after the start command (status byte2 `04` = no card yet; keep polling,
+like the SwitchBot app, until `01` read or `03` already enrolled). `570F530301 <slot>` tells whether a slot holds a card
+(`01 …` yes, `02` no). **Deleting an unconfirmed/empty NFC slot that was allocated by a start command still decrements
+the card counter** – it underflows to `FF`, and every start is answered with `10` until the keypad is removed and
+re-added in the SwitchBot app. Never delete an NFC slot without checking it first.
+
+Basic queries answered with `04`/`05` mean the encryption key is not valid (e.g. after the keypad was re-added).
 
 No list: on a Keypad Vision Pro the index-table and cursor queries of older keypads (`570F530200`, `…0300`, `…0400`,
 `570F520206/0305/0404` + `570F5302 05/06`, `…0303–0306`, `…0402/0403`) all answer `05`. The credential list shown in

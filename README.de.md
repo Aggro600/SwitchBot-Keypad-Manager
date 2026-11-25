@@ -9,7 +9,7 @@ nicht erreichbar ist.
 
 ## Was es kann
 
-- **Anlernen am Keypad aus Home Assistant:** Person und *Was* wählen (10 Finger, Gesicht, Handfläche, zufälliger PIN,
+- **Anlernen am Keypad aus Home Assistant:** Person und *Was* wählen (10 Finger, Gesicht, Handfläche rechts/links, zufälliger PIN,
   NFC-Karte), *Anlernen starten*, ans Keypad gehen. Platz und Name werden automatisch gespeichert.
 - **Löschen – immer im Keypad *und* in der Liste:** auch Zugänge, die nicht hier angelernt wurden. Unbekannte stehen in
   der Auswahl als *Unbekannt – Gesicht 1*, *Unbekannt – PIN-Code 1* …; die Integration sucht den Platz im Keypad
@@ -33,8 +33,10 @@ nicht erreichbar ist.
 ## Voraussetzungen
 
 - Home Assistant 2026.9 oder neuer
-- SwitchBot Keypad Vision oder Vision Pro in der **SwitchBot**-Integration von Home Assistant (Bluetooth, mit
-  SwitchBot-Konto, damit der Schlüssel geholt wird) und ein Bluetooth-Adapter/-Proxy in Reichweite
+- SwitchBot Keypad Vision oder Vision Pro (in der SwitchBot-App eingerichtet) und ein Bluetooth-Adapter oder
+  ESPHome-Bluetooth-Proxy in Reichweite. Die Integration hat eine **eigene Verbindung** (PySwitchbot über das Bluetooth
+  von Home Assistant); der Schlüssel wird bei der Einrichtung einmal mit dem SwitchBot-Konto geholt (nicht gespeichert)
+  oder von Hand eingegeben. Die SwitchBot-Integration wird **nicht** gebraucht.
 - Für „wer hat entsperrt“ und die Freigabe: ein ESP32 mit der
   [switchbot-keypad-bridge](https://github.com/pierluigizagaria/switchbot-keypad-bridge) (nicht Teil dieses Repositorys)
 
@@ -42,8 +44,9 @@ nicht erreichbar ist.
 
 1. HACS → ⋮ → *Benutzerdefinierte Repositories* → `https://github.com/Aggro600/SwitchBot-Keypad-Manager` (Integration).
 2. **SwitchBot Keypad Manager** installieren, Home Assistant neu starten.
-3. *Einstellungen → Geräte & Dienste → Integration hinzufügen → SwitchBot Keypad Manager*: Keypad, Keypad-Bridge
-   (ESPHome-Gerätename, Standard `keypad-bridge`) und Personen für die Auswahl wählen.
+3. *Einstellungen → Geräte & Dienste → Integration hinzufügen → SwitchBot Keypad Manager*: Keypad (aus der
+   Bluetooth-Liste – Keypad antippen, damit es sendet), Keypad-Bridge (ESPHome-Gerätename) und Personen wählen,
+   danach den Schlüssel *mit SwitchBot-Konto* holen oder von Hand eingeben.
 
 Die Bridge-Konfiguration (Ereignis mit `bridge`, Freigabe mit `approval:` und den Aktionen `approve_unlock` /
 `deny_unlock`) steht im [englischen README](README.md#keypad-bridge-configuration). Die Freigabe ist beim Bridge-Autor als [Pull Request #56](https://github.com/pierluigizagaria/switchbot-keypad-bridge/pull/56) eingereicht; bis zur Übernahme den Zweig `feat/home-assistant-approval` aus [diesem Fork](https://github.com/Aggro600/switchbot-keypad-bridge/tree/feat/home-assistant-approval) verwenden. In den ESPHome-Optionen der Bridge
@@ -53,7 +56,15 @@ Die Bridge-Konfiguration (Ereignis mit `bridge`, Freigabe mit `approval:` und de
 
 - **PIN-Codes** sind zufällig (6 Ziffern), werden einmal als Meldung angezeigt und **nirgends gespeichert**.
 - Was hier angelernt wird, kennt die **SwitchBot-App** nicht; die Namen liegen in Home Assistant.
-- **Handfläche:** Start und Status geprüft, Bestätigen/Löschen aus dem Gesichts-Schema abgeleitet.
+- **An echter Hardware geprüft** (Keypad Vision Pro): Anlernen, Entsperr-Meldung und Löschen für PIN, NFC-Karte,
+  Finger, Gesicht und Handfläche rechts/links – jeweils mit der Zählung im Keypad.
+- **NFC-Karte:** nach *Anlernen* die Karte **innerhalb von ca. 5 s** ans Keypad halten – länger wartet es nicht.
+- **Nie einen leeren NFC-Platz selbst löschen** (z. B. mit eigenen Roh-Befehlen): das Keypad zählt seinen Kartenzähler
+  trotzdem herunter; unter 0 meldet es 255 Karten und nimmt keine neue mehr an, bis es in der SwitchBot-App entfernt und
+  neu hinzugefügt wird. Die Integration prüft vor jedem Löschen, ob auf dem Platz wirklich eine Karte liegt.
+- **Update von 1.x:** einmal neu authentifizieren (Keypad wählen, Schlüssel holen) – Freigabe und Meldungen laufen
+  währenddessen weiter. Nach Entfernen/Neu-Hinzufügen in der SwitchBot-App hat das Keypad einen neuen Schlüssel; dann
+  fragt die Integration erneut.
 - **Schlüssel oder anderen Zugang behalten** – es ist eine Zutrittsanlage.
 - In der Bridge-YAML bei `api:` und `wifi:` `reboot_timeout: 0s` setzen: ESPHome startet sonst nach 15 Minuten ohne
   Home Assistant oder WLAN neu – der Notweg soll aber weiterlaufen.

@@ -10,12 +10,14 @@
   ],
   "config_flow": true,
   "dependencies": [
-    "switchbot"
+    "bluetooth"
   ],
   "documentation": "https://github.com/Aggro600/SwitchBot-Keypad-Manager",
   "integration_type": "device",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/Aggro600/SwitchBot-Keypad-Manager/issues",
-  "requirements": [],
-  "version": "1.7.1"
+  "requirements": [
+    "PySwitchbot>=3.8.4"
+  ],
+  "version": "2.0.0"
 }

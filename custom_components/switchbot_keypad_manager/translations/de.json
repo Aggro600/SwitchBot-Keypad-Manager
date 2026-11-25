@@ -3,18 +3,53 @@
     "step": {
       "user": {
         "title": "SwitchBot Keypad Manager einrichten",
-        "description": "Keypad aus der SwitchBot-Integration und die ESPHome-Keypad-Bridge wählen, deren Ereignisse zeigen, wer entsperrt hat.",
+        "description": "Keypad wählen (sichtbar über Bluetooth von Home Assistant oder einen ESPHome-Bluetooth-Proxy) und die ESPHome-Keypad-Bridge, die meldet, wer entsperrt hat.",
         "data": {
-          "keypad_entry": "Keypad",
+          "address": "Keypad",
           "bridge": "Keypad-Bridge (ESPHome-Gerät)",
           "name": "Name (optional)",
           "persons": "Personen in der Auswahl"
         }
+      },
+      "key": {
+        "title": "Schlüssel des Keypads",
+        "description": "Das Keypad verschlüsselt seine Befehle. Schlüssel mit dem SwitchBot-Konto holen (nur einmal benutzt, nicht gespeichert) oder selbst eingeben.",
+        "menu_options": {
+          "key_login": "Mit SwitchBot-Konto",
+          "key_manual": "Schlüssel-ID und Schlüssel eingeben"
+        }
+      },
+      "key_login": {
+        "title": "SwitchBot-Konto",
+        "data": {
+          "username": "E-Mail",
+          "password": "Passwort"
+        }
+      },
+      "key_manual": {
+        "title": "Schlüssel eingeben",
+        "data": {
+          "key_id": "Schlüssel-ID (2 Zeichen)",
+          "encryption_key": "Schlüssel (32 Zeichen)"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Verbindung zum Keypad",
+        "description": "Ab 2.0 spricht die Integration selbst mit dem Keypad. Einmal das Keypad von {title} wählen, danach den Schlüssel.",
+        "data": {
+          "address": "Keypad"
+        }
       }
     },
+    "error": {
+      "auth_failed": "Anmeldung bei SwitchBot fehlgeschlagen",
+      "cannot_connect": "SwitchBot-Cloud nicht erreichbar",
+      "encryption_key_invalid": "Das Keypad nimmt diesen Schlüssel nicht an (oder ist außer Reichweite)"
+    },
     "abort": {
-      "no_keypad": "Kein Keypad Vision in der SwitchBot-Integration gefunden.",
-      "already_configured": "Dieses Keypad ist schon eingerichtet."
+      "no_keypad": "Kein Keypad Vision (Pro) über Bluetooth zu sehen – Bluetooth-Proxy näher stellen oder das Keypad antippen, damit es sendet.",
+      "already_configured": "Dieses Keypad ist schon eingerichtet.",
+      "reauth_successful": "Verbindung aktualisiert."
     }
   },
   "options": {
@@ -58,7 +93,8 @@
           "ring_left": "Ringfinger links",
           "little_left": "kleiner Finger links",
           "face": "Gesicht",
-          "palm": "Handfläche",
+          "palm_right": "Handfläche rechts",
+          "palm_left": "Handfläche links",
           "pin_random": "PIN-Code (zufällig)",
           "nfc_card": "NFC-Karte"
         }
@@ -312,7 +348,8 @@
         "ring_left": "Ringfinger links",
         "little_left": "kleiner Finger links",
         "face": "Gesicht",
-        "palm": "Handfläche",
+        "palm_right": "Handfläche rechts",
+        "palm_left": "Handfläche links",
         "pin_random": "PIN-Code (zufällig)",
         "nfc_card": "NFC-Karte"
       }
