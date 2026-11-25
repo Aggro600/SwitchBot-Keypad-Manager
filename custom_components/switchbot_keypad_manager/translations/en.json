@@ -312,6 +312,13 @@
           "auto": "Auto",
           "on": "On"
         }
+      },
+      "kp_language": {
+        "name": "Voice language",
+        "state": {
+          "english": "English",
+          "german": "German"
+        }
       }
     },
     "button": {
@@ -391,6 +398,9 @@
       },
       "kp_key_tone": {
         "name": "Key tone"
+      },
+      "kp_tamper_alarm": {
+        "name": "Tamper alarm"
       }
     },
     "text": {

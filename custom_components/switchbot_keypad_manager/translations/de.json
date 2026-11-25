@@ -312,6 +312,13 @@
           "auto": "Automatisch",
           "on": "An"
         }
+      },
+      "kp_language": {
+        "name": "Sprache der Ansage",
+        "state": {
+          "english": "Englisch",
+          "german": "Deutsch"
+        }
       }
     },
     "button": {
@@ -391,6 +398,9 @@
       },
       "kp_key_tone": {
         "name": "Tastenton"
+      },
+      "kp_tamper_alarm": {
+        "name": "Demontagealarm"
       }
     },
     "text": {

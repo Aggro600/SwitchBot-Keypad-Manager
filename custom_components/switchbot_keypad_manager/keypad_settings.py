@@ -8,6 +8,8 @@
   0108  detection sensitivity  01 low / 02 medium / 03 high        write 570F520108 <v>
   010A  detection trigger      01 auto / 02 manual / 03 schedule   write 570F52010A <v>
   010B  deactivation interval  seconds                             write 570F52010B <s>
+  5702  basic info             byte9 tamper alarm 01 off / 02 on   write 570F520103 <01|02>
+  010D  voice language         01 English / 04 German (others unknown) write 570F52010D <v>
   010C  volume                 read <voice> <tones>, 1 mute … 4 high
                                write 570F52010C <v> <01 tones | 02 voice>
 """
@@ -35,6 +37,7 @@ SENSITIVITY = ["low", "medium", "high"]
 FAST_UNLOCK = ["off", "always", "auto"]
 VOLUMES = ["mute", "low", "medium", "high"]
 BACKLIGHT = ["off", "auto", "on"]
+LANGUAGES = {"english": 1, "german": 4}
 SIGNAL = "switchbot_keypad_manager_kpset_{}"
 
 
@@ -72,6 +75,10 @@ class KeypadSettings:
         s["trigger"] = TRIGGERS[min(max(r[1], 1), 3) - 1]
         r = await self._r("570F53010B", 2)
         s["deactivation_interval"] = r[1]
+        r = await self._r("5702", 10)
+        s["tamper_alarm"] = r[9] == 2
+        r = await self._r("570F53010D", 2)
+        s["language"] = next((k for k, v in LANGUAGES.items() if v == r[1]), None)
         r = await self._r("570F53010C", 3)
         s["voice_volume"] = VOLUMES[min(max(r[1], 1), 4) - 1]
         s["tone_volume"] = VOLUMES[min(max(r[2], 1), 4) - 1]
@@ -110,6 +117,10 @@ class KeypadSettings:
             cmd = f"570F52010A{TRIGGERS.index(value) + 1:02X}"
         elif key == "deactivation_interval":
             cmd = f"570F52010B{int(value):02X}"
+        elif key == "tamper_alarm":
+            cmd = f"570F520103{2 if value else 1:02X}"
+        elif key == "language":
+            cmd = f"570F52010D{LANGUAGES[value]:02X}"
         elif key == "voice_volume":
             cmd = f"570F52010C{VOLUMES.index(value) + 1:02X}02"
         elif key == "tone_volume":
@@ -221,14 +232,15 @@ class SettingsRefresh(KeypadEntity, ButtonEntity):
 def setting_entities(platform: str, m) -> list:
     if platform == "switch":
         return [SettingSwitch(m, "lock_button", "mdi:lock-check"), SettingSwitch(m, "keypad_disabled", "mdi:dialpad"),
-                SettingSwitch(m, "key_tone", "mdi:volume-high")]
+                SettingSwitch(m, "key_tone", "mdi:volume-high"), SettingSwitch(m, "tamper_alarm", "mdi:alarm-light")]
     if platform == "select":
         return [SettingSelect(m, "trigger", "mdi:radar", TRIGGERS),
                 SettingSelect(m, "sensitivity", "mdi:signal-distance-variant", SENSITIVITY),
                 SettingSelect(m, "fast_unlock", "mdi:lock-open-variant", FAST_UNLOCK),
                 SettingSelect(m, "voice_volume", "mdi:account-voice", VOLUMES),
                 SettingSelect(m, "tone_volume", "mdi:bell-ring", VOLUMES),
-                SettingSelect(m, "backlight", "mdi:brightness-6", BACKLIGHT)]
+                SettingSelect(m, "backlight", "mdi:brightness-6", BACKLIGHT),
+                SettingSelect(m, "language", "mdi:translate", list(LANGUAGES))]
     if platform == "number":
         return [SettingNumber(m, "deactivation_interval", "mdi:timer-sand", 5, 60, "s"),
                 SettingNumber(m, "backlight_level", "mdi:brightness-percent", 1, 5)]

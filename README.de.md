@@ -28,7 +28,7 @@ nicht erreichbar ist.
   SwitchBot-App). Zuordnen: einmal damit entsperren, *Letzte Entsperrung zuordnen*. Für unbekannte Zugänge gibt es
   eine eigene Regel (auch *Nur Automation*) – z. B. „jedes Entsperren startet nur mein Tür-Skript“.
 - **Keypad-Einstellungen:** Erkennungsauslöser und -empfindlichkeit, Deaktivierungsintervall, Fast Unlock,
-  Lautstärke Sprachansage und Signaltöne, Tastenton, Hintergrundbeleuchtung und Helligkeit, Verriegelungstaste,
+  Lautstärke Sprachansage und Signaltöne, Sprache der Ansage, Demontagealarm, Tastenton, Hintergrundbeleuchtung und Helligkeit, Verriegelungstaste,
   Keypad deaktivieren – wie in der SwitchBot-App.
 - **Lock-Ultra-Einstellungen** (Schloss als zweiten Eintrag hinzufügen): Motorgeschwindigkeit (schnell/normal/leise),
   LED, Ton, automatisch verriegeln + Zeit, pausieren, halb verriegeln, Taste am Schloss (Drücken, Aktion), iBeacon und

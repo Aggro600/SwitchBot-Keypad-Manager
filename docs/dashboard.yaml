@@ -248,6 +248,14 @@ sections:
       grid_options:
         columns: 6
     - type: tile
+      entity: select.front_door_voice_language
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: switch.front_door_tamper_alarm
+      grid_options:
+        columns: 6
+    - type: tile
       entity: switch.front_door_key_tone
       grid_options:
         columns: 6

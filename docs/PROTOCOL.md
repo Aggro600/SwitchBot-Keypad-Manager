@@ -59,12 +59,13 @@ After too many failed attempts the keypad locks itself for a while (lockout alar
 |---|---|---|
 | Lock button | `0101` → `01 <01 off / 02 on / 03 timed>` | `0101 <01/02> 0000` |
 | Keypad disabled | `0102` → `01 <01 no / 02 yes>` | `0102 <01/02>` |
-| Tamper alarm | `0103` → `01 <01 off / 02 on>` | writing does not change it on the Vision Pro |
+| Tamper alarm | basic info `5702` byte9 (01 off / 02 on); `0103` does not reflect it | `0103 <01/02>` |
+| Voice language | `010D` → `01 <01 English / 04 German>` | `010D <v>` |
 | Backlight, level, key tone | `0104` → `01 <mode 01 off/02 auto/03 on> <level> <tone 01/02>` | `0104 <mode> <level> <tone>` (`00` = keep) |
 | Fast unlock | `0107` → `01 <00 off / 01 always / 02 auto>` | `0107 <v>` |
 | Detection sensitivity | `0108` → `01 <01 low … 03 high>` | `0108 <v>` |
 | (unknown, 3 bytes) | `0109` → `01 02 01 01` | write all 3 bytes or the others are cleared |
-| Detection trigger | `010A` → `01 <01 auto / 02 manual / 03 schedule>` | `010A <v>` |
+| Detection trigger | `010A` → `01 <01 auto / 02 manual / 03 schedule>` | `010A <v>` (the app sends no schedule times over BLE – captured with an HCI log) |
 | Deactivation interval | `010B` → `01 <seconds>` | `010B <s>` |
 | Volume | `010C` → `01 <voice> <tones>` (1 mute … 4 high) | `010C <v> <01 tones / 02 voice>`, one byte = both |
 

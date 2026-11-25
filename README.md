@@ -32,7 +32,8 @@ fingerprints, faces, palms, PIN codes and NFC cards, see *who* unlocked *how*, a
   (e.g. created in the SwitchBot app). Assign them by unlocking once and pressing *Assign last unlock*. Unknown
   credentials have their own rule (also *automation only*) – e.g. "every unlock only runs my door script".
 - **Keypad settings** – detection trigger and sensitivity, deactivation interval, fast unlock, voice and signal tone
-  volume, key tone, backlight and brightness, lock button, disable the keypad – the same as in the SwitchBot app.
+  volume, voice language, key tone, backlight and brightness, lock button, tamper alarm, disable the keypad – the same
+  as in the SwitchBot app.
 - **Lock Ultra settings** (add the lock as a second entry) – motor speed (fast / normal / quiet), LED light, sound,
   auto-lock and its delay, pause auto-lock, half lock, the button on the lock (press, action), iBeacon and the whole
   **night mode** (from/until, speed, sound, lock at start, full/half lock, auto-lock, auto-unlock).
@@ -187,12 +188,13 @@ The keypad entry also gets **configuration entities** for the keypad itself:
 
 | Entity | Values |
 |---|---|
-| Detection trigger | auto / manual / schedule (the schedule times are set in the SwitchBot app) |
+| Detection trigger | auto / manual / schedule (the schedule times are kept by the SwitchBot app, they are not sent to the keypad over Bluetooth) |
 | Detection sensitivity | low / medium / high |
 | Deactivation interval | 5–60 s |
 | Fast unlock | off / always on / auto |
 | Voice prompt volume, signal tone volume | mute / low / medium / high |
-| Key tone, lock button, keypad disabled | on / off – *keypad disabled* means nobody can unlock at the keypad |
+| Key tone, lock button, keypad disabled, tamper alarm | on / off – *keypad disabled* means nobody can unlock at the keypad |
+| Voice language | English / German (other languages: set them in the app) |
 | Backlight, brightness | off / auto / on, 1–5 |
 
 **Lock Ultra:** *Add integration → SwitchBot Keypad Manager → Lock Ultra – settings*, pick the lock and get its key
