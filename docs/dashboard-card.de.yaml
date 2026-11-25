@@ -24,6 +24,14 @@ cards:
     name: Neue Person (optional)
   - entity: select.keypad_haustur_was
     name: Was?
+  - type: conditional
+    conditions:
+    - condition: state
+      entity: select.keypad_haustur_was
+      state: pin_custom
+    row:
+      entity: text.keypad_haustur_pin_code_6_12_ziffern
+      name: Eigener PIN (6–12 Ziffern)
   - entity: select.keypad_haustur_gultigkeit
     name: Gültigkeit
   - type: buttons
@@ -54,6 +62,17 @@ cards:
   - type: divider
   - entity: sensor.keypad_haustur_status
     name: Status
+  - type: conditional
+    conditions:
+    - condition: state
+      entity: sensor.keypad_haustur_status
+      state: "Neuer PIN-Code – bitte notieren"
+    row:
+      type: attribute
+      entity: sensor.keypad_haustur_status
+      attribute: pin
+      name: Neuer PIN-Code
+      icon: mdi:dialpad
   - entity: switch.keypad_haustur_entsperren_freigeben
     name: Entsperren freigeben
   - entity: select.keypad_haustur_regel_fur_die_person

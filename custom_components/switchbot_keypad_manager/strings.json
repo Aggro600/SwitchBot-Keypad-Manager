@@ -111,6 +111,7 @@
           "face": "Face",
           "palm_right": "Palm (right)",
           "palm_left": "Palm (left)",
+          "pin_custom": "PIN code (own)",
           "pin_random": "PIN code (random)",
           "nfc_card": "NFC card"
         }
@@ -396,6 +397,9 @@
       },
       "kp_refresh": {
         "name": "Read keypad settings"
+      },
+      "pin_hide": {
+        "name": "New PIN noted – hide"
       }
     },
     "switch": {
@@ -463,6 +467,9 @@
     "text": {
       "new_person": {
         "name": "New person (optional)"
+      },
+      "pin_code": {
+        "name": "PIN code (6–12 digits)"
       }
     },
     "time": {
@@ -544,6 +551,10 @@
         "validity": {
           "name": "Validity",
           "description": "Time limit (PIN, fingerprint, NFC)."
+        },
+        "pin": {
+          "name": "PIN",
+          "description": "Your own PIN (6–12 digits) for \"PIN code (own)\"."
         }
       }
     },
@@ -610,6 +621,7 @@
         "face": "Face",
         "palm_right": "Palm (right)",
         "palm_left": "Palm (left)",
+        "pin_custom": "PIN code (own)",
         "pin_random": "PIN code (random)",
         "nfc_card": "NFC card"
       }

@@ -24,6 +24,14 @@ cards:
     name: New person (optional)
   - entity: select.front_door_what
     name: What?
+  - type: conditional
+    conditions:
+    - condition: state
+      entity: select.front_door_what
+      state: pin_custom
+    row:
+      entity: text.front_door_pin_code_6_12_digits
+      name: Own PIN (6–12 digits)
   - entity: select.front_door_validity
     name: Validity
   - type: buttons
@@ -54,6 +62,17 @@ cards:
   - type: divider
   - entity: sensor.front_door_status
     name: Status
+  - type: conditional
+    conditions:
+    - condition: state
+      entity: sensor.front_door_status
+      state: "New PIN code – note it down"
+    row:
+      type: attribute
+      entity: sensor.front_door_status
+      attribute: pin
+      name: New PIN code
+      icon: mdi:dialpad
   - entity: switch.front_door_approve_unlocks
     name: Approve unlocks
   - entity: select.front_door_rule_for_the_person

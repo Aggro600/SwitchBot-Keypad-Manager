@@ -13,7 +13,7 @@ fingerprints, faces, palms, PIN codes and NFC cards, see *who* unlocked *how*, a
 ## Features
 
 - **Enroll on the keypad from Home Assistant** – pick a person and what to enroll (10 fingers, face, left/right palm,
-  random PIN, NFC card), press *Start enrollment*, go to the keypad. Slot and name are stored automatically.
+  your own or a random PIN, NFC card), press *Start enrollment*, go to the keypad. Slot and name are stored automatically.
 - **Delete – always on the keypad *and* in the list**, also credentials that were not enrolled here. Unknown ones
   appear in the selection as *Unknown – Face 1*, *Unknown – PIN code 1* …; the integration finds the keypad slot itself
   (the keypad reports the remaining count on delete). **Delete everything** (press twice) clears keypad and list.
@@ -211,8 +211,8 @@ change, read back, restore). A sections example with both is in [docs/dashboard.
 ## Actions and event
 
 - `switchbot_keypad_manager.enroll` – `person`, `what` (`thumb_right` … `little_left`, `face`, `palm_right`, `palm_left`,
-  `pin_random`, `nfc_card`), `validity` (`permanent`, `today`, `24h`, `1w`, `1m`, `once`); returns the entry
-  and, for PINs, the generated code.
+  `pin_custom`, `pin_random`, `nfc_card`), `validity` (`permanent`, `today`, `24h`, `1w`, `1m`, `once`), `pin`
+  (6–12 digits, for `pin_custom`); returns the entry and, for PINs, the code.
 - `switchbot_keypad_manager.update` – `entry_id`, optional `person` and `what` (the kind stays the same).
 - `switchbot_keypad_manager.delete` – `entry_id` (from the `entries` attribute); deletes on the keypad and in the list.
 - `switchbot_keypad_manager.sync`
@@ -248,7 +248,10 @@ More examples (one combined automation vs. one automation per case): [docs/examp
 
 ## Good to know
 
-- **PIN codes** are random 6-digit codes, shown once as a notification and **not stored** anywhere.
+- **PIN codes:** *PIN code (own)* uses the 6–12 digits you type into *PIN code (6–12 digits)* (shown only as
+  asterisks, kept in memory and cleared after enrolling). *PIN code (random)* creates a 6-digit code that is shown
+  **once**: in the status (`state_content: [state, pin]` on the status tile), as the status attribute `pin` and as a
+  notification – until *New PIN noted – hide*, the next action or after 10 minutes. PINs are **never stored** or recorded.
 - Credentials enrolled here are **not known to the SwitchBot app** (it keeps names in your SwitchBot account);
   names live in Home Assistant.
 - **The keypad cannot list its credentials** (the list in the SwitchBot app lives in the SwitchBot cloud). Unknown

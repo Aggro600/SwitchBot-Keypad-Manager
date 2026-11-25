@@ -21,7 +21,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities([Action(m, "enroll", "mdi:account-plus"), Action(m, "delete", "mdi:account-remove"),
                         Action(m, "update", "mdi:account-edit"),
                         Action(m, "assign_last", "mdi:account-arrow-left"), Action(m, "sync", "mdi:sync"),
-                        Action(m, "cancel", "mdi:cancel"), Action(m, "delete_all", "mdi:delete-alert")])
+                        Action(m, "cancel", "mdi:cancel"), Action(m, "delete_all", "mdi:delete-alert"),
+                        Action(m, "pin_hide", "mdi:eye-off")])
 
 
 class Action(KeypadEntity, ButtonEntity):
@@ -68,6 +69,8 @@ class Action(KeypadEntity, ButtonEntity):
                 return
             self._armed = 0.0
             self.hass.async_create_background_task(self._quiet(m.delete_all()), f"{DOMAIN}_delete_all")
+        elif self.key == "pin_hide":
+            m.hide_pin()
         elif self.key == "cancel":
             m.cancel()
             await m.set_status("cancel")

@@ -111,6 +111,7 @@
           "face": "Gesicht",
           "palm_right": "Handfläche rechts",
           "palm_left": "Handfläche links",
+          "pin_custom": "PIN-Code (eigener)",
           "pin_random": "PIN-Code (zufällig)",
           "nfc_card": "NFC-Karte"
         }
@@ -396,6 +397,9 @@
       },
       "kp_refresh": {
         "name": "Keypad-Einstellungen lesen"
+      },
+      "pin_hide": {
+        "name": "Neuen PIN notiert – ausblenden"
       }
     },
     "switch": {
@@ -463,6 +467,9 @@
     "text": {
       "new_person": {
         "name": "Neue Person (optional)"
+      },
+      "pin_code": {
+        "name": "PIN-Code (6–12 Ziffern)"
       }
     },
     "time": {
@@ -544,6 +551,10 @@
         "validity": {
           "name": "Gültigkeit",
           "description": "Befristung (PIN, Finger, NFC)."
+        },
+        "pin": {
+          "name": "PIN",
+          "description": "Eigener PIN (6–12 Ziffern) für „PIN-Code (eigener)“."
         }
       }
     },
@@ -610,6 +621,7 @@
         "face": "Gesicht",
         "palm_right": "Handfläche rechts",
         "palm_left": "Handfläche links",
+        "pin_custom": "PIN-Code (eigener)",
         "pin_random": "PIN-Code (zufällig)",
         "nfc_card": "NFC-Karte"
       }

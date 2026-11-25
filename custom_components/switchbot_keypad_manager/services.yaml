@@ -13,13 +13,17 @@ enroll:
       selector:
         select:
           translation_key: what
-          options: ["thumb_right", "index_right", "middle_right", "ring_right", "little_right", "thumb_left", "index_left", "middle_left", "ring_left", "little_left", "face", "palm_right", "palm_left", "pin_random", "nfc_card"]
+          options: ["thumb_right", "index_right", "middle_right", "ring_right", "little_right", "thumb_left", "index_left", "middle_left", "ring_left", "little_left", "face", "palm_right", "palm_left", "pin_custom", "pin_random", "nfc_card"]
     validity:
       default: permanent
       selector:
         select:
           translation_key: validity
           options: ["permanent", "today", "24h", "1w", "1m", "once"]
+    pin:
+      selector:
+        text:
+          type: password
 delete:
   fields:
     config_entry_id:
@@ -53,4 +57,4 @@ update:
       selector:
         select:
           translation_key: what
-          options: ["thumb_right", "index_right", "middle_right", "ring_right", "little_right", "thumb_left", "index_left", "middle_left", "ring_left", "little_left", "face", "palm_right", "palm_left", "pin_random", "nfc_card"]
+          options: ["thumb_right", "index_right", "middle_right", "ring_right", "little_right", "thumb_left", "index_left", "middle_left", "ring_left", "little_left", "face", "palm_right", "palm_left", "pin_custom", "pin_random", "nfc_card"]

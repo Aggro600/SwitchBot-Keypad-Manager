@@ -9,7 +9,7 @@ nicht erreichbar ist.
 
 ## Was es kann
 
-- **Anlernen am Keypad aus Home Assistant:** Person und *Was* wählen (10 Finger, Gesicht, Handfläche rechts/links, zufälliger PIN,
+- **Anlernen am Keypad aus Home Assistant:** Person und *Was* wählen (10 Finger, Gesicht, Handfläche rechts/links, eigener oder zufälliger PIN,
   NFC-Karte), *Anlernen starten*, ans Keypad gehen. Platz und Name werden automatisch gespeichert.
 - **Löschen – immer im Keypad *und* in der Liste:** auch Zugänge, die nicht hier angelernt wurden. Unbekannte stehen in
   der Auswahl als *Unbekannt – Gesicht 1*, *Unbekannt – PIN-Code 1* …; die Integration sucht den Platz im Keypad
@@ -63,7 +63,11 @@ Die Bridge-Konfiguration (Ereignis mit `bridge`, Freigabe mit `approval:` und de
 
 ## Gut zu wissen
 
-- **PIN-Codes** sind zufällig (6 Ziffern), werden einmal als Meldung angezeigt und **nirgends gespeichert**.
+- **PIN-Codes:** *PIN-Code (eigener)* nimmt die 6–12 Ziffern aus dem Feld *PIN-Code (6–12 Ziffern)* (nur als
+  Sternchen sichtbar, nur im Arbeitsspeicher, nach dem Anlernen gelöscht). *PIN-Code (zufällig)* erzeugt 6 Ziffern und
+  zeigt sie **einmal** an: im Statusfeld (`state_content: [state, pin]` an der Status-Kachel), als Attribut `pin` des
+  Status-Sensors und als Meldung – bis *Neuen PIN notiert – ausblenden*, zur nächsten Aktion oder nach 10 Minuten.
+  PINs werden **nirgends gespeichert** und nicht im Verlauf aufgezeichnet.
 - Was hier angelernt wird, kennt die **SwitchBot-App** nicht; die Namen liegen in Home Assistant.
 - **An echter Hardware geprüft** (Keypad Vision Pro): Anlernen, Entsperr-Meldung und Löschen für PIN, NFC-Karte,
   Finger, Gesicht und Handfläche rechts/links – jeweils mit der Zählung im Keypad.

@@ -12,7 +12,17 @@ sections:
         grid_options: {columns: 12}
       - type: tile
         entity: sensor.front_door_status
+        state_content: [state, pin]   # shows a new random PIN once (attribute, not recorded)
         grid_options: {columns: 12}
+      - type: vertical-stack
+        visibility: [{condition: state, entity: sensor.front_door_status, state: "New PIN code – note it down"}]
+        grid_options: {columns: 12}
+        cards:
+          - type: markdown
+            content: "## New PIN code\n# **{{ state_attr('sensor.front_door_status','pin') }}**\nNote it now – shown only once (max. 10 minutes), stored nowhere."
+          - type: tile
+            entity: button.front_door_new_pin_noted_hide
+            tap_action: {action: toggle}
       - type: heading
         heading: Enroll
         heading_style: subtitle
@@ -28,6 +38,10 @@ sections:
         entity: select.front_door_what
         features: [{type: select-options}]
         features_position: bottom
+        grid_options: {columns: 12}
+      - type: tile
+        entity: text.front_door_pin_code_6_12_digits
+        visibility: [{condition: state, entity: select.front_door_what, state: pin_custom}]
         grid_options: {columns: 12}
       - type: tile
         entity: select.front_door_validity

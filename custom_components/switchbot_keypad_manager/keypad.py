@@ -212,7 +212,7 @@ class Keypad:
 
     async def _enroll(self, kind: str, *, valid_from: float | None = None, valid_until: float | None = None,
                      once: bool = False, status: Callable[[str], Awaitable[None] | None] | None = None,
-                     cancel: asyncio.Event | None = None) -> dict:
+                     cancel: asyncio.Event | None = None, pin: str | None = None) -> dict:
         """Enroll a new credential. Returns {'slot': n, 'pin': '…' (PIN only)}.
 
         `status` receives short keys: finger, face, palm, card, pin_done.
@@ -232,7 +232,7 @@ class Keypad:
                 except KeypadError:
                     before = None
             if kind == PIN:
-                return await self._pin(limited, once, valid_from, valid_until, report)
+                return await self._pin(limited, once, valid_from, valid_until, report, pin)
             if kind == FINGERPRINT:
                 data = await self.command("570F520401" + ("01" if limited else "00") + "0200")
                 if data[0] != 1:
@@ -292,8 +292,9 @@ class Keypad:
                 return {"slot": slot}
         raise KeypadError(f"Unknown credential kind {kind}")
 
-    async def _pin(self, limited, once, valid_from, valid_until, report) -> dict:
-        pin = "".join(str(secrets.randbelow(10)) for _ in range(6))
+    async def _pin(self, limited, once, valid_from, valid_until, report, pin: str | None = None) -> dict:
+        """PIN with 6-12 digits; a random 6-digit one when none is given."""
+        pin = pin or "".join(str(secrets.randbelow(10)) for _ in range(6))
         pin_type = 2 if once else (1 if limited else 0)
         payload = bytes([0xFF, pin_type, len(pin)]) + bytes(int(c) for c in pin)
         chunks = [payload[i:i + 11] for i in range(0, len(payload), 11)]

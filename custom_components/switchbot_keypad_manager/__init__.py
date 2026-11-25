@@ -7,6 +7,7 @@ optionally, approve or deny each keypad unlock with per-person rules.
 from __future__ import annotations
 
 import asyncio
+import re
 from datetime import timedelta
 import logging
 import uuid
@@ -19,7 +20,7 @@ from homeassistant.core import Event, HomeAssistant, ServiceCall, SupportsRespon
 from homeassistant.exceptions import HomeAssistantError
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.dispatcher import async_dispatcher_send
-from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.event import async_call_later, async_track_time_interval
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
@@ -81,6 +82,9 @@ class Manager:
         self.unassigned: dict | None = None       # last unlock without a matching entry
         self.status_key, self.status_args = "ready", {}
         self.choice = {"person": None, "what": "thumb_right", "validity": "permanent", "entry": NO_ENTRY}
+        self.new_pin = ""  # random PIN just created – shown once on the status sensor (not recorded)
+        self._pin_timer = None
+        self.pin = ""  # own PIN for the next enrollment – memory only, never saved or shown as a state
         self.running: asyncio.Task | None = None
         self.cancel_event = asyncio.Event()
 
@@ -196,7 +200,33 @@ class Manager:
         except (KeyError, IndexError):
             return text
 
+    @callback
+    def show_pin(self, pin: str) -> None:
+        """Show a new random PIN once: status 'pin_show' + attribute 'pin' (not recorded), hidden after 10 min."""
+        self.new_pin = pin
+        self.status_key, self.status_args = "pin_show", {}
+        if self._pin_timer:
+            self._pin_timer()
+        self._pin_timer = async_call_later(self.hass, 600, lambda _now: self.hide_pin())
+        self.notify_entities()
+
+    @callback
+    def hide_pin(self) -> None:
+        if self._pin_timer:
+            self._pin_timer()
+            self._pin_timer = None
+        if self.new_pin:
+            self.new_pin = ""
+            if self.status_key == "pin_show":
+                self.status_key, self.status_args = "ready", {}
+            self.notify_entities()
+
     async def set_status(self, key: str, **args) -> None:
+        if self.new_pin:  # the next action ends the one-time display of a new PIN
+            self.new_pin = ""
+            if self._pin_timer:
+                self._pin_timer()
+                self._pin_timer = None
         self.status_key, self.status_args = key, args
         self.notify_entities()
 
@@ -332,7 +362,7 @@ class Manager:
                "1w": now + timedelta(days=7), "1m": now + timedelta(days=30)}.get(validity)
         return (now, end) if end else (None, None)
 
-    async def enroll(self, person: str, what: str, validity: str = "permanent") -> dict:
+    async def enroll(self, person: str, what: str, validity: str = "permanent", pin: str | None = None) -> dict:
         if self.running and not self.running.done():
             raise HomeAssistantError(self.t["err_running"])
         if not person:
@@ -340,6 +370,12 @@ class Manager:
         if what not in WHAT_OPTIONS:
             raise HomeAssistantError(f"Unknown option {what}")
         kind, detail = WHAT_OPTIONS[what]
+        if what == "pin_custom":
+            pin = (pin or self.pin or "").strip()
+            if not re.fullmatch(r"\d{6,12}", pin):
+                raise HomeAssistantError(self.t["err_pin"])
+        else:
+            pin = None
         start, end = self._period(validity)
         once = validity == "once"
         if once and kind != PIN:
@@ -352,12 +388,15 @@ class Manager:
         try:
             result = await self.keypad.enroll(
                 kind, valid_from=start.timestamp() if end else None, valid_until=end.timestamp() if end else None,
-                once=once, status=lambda key: self.set_status(key), cancel=self.cancel_event)
+                once=once, status=lambda key: self.set_status(key), cancel=self.cancel_event, pin=pin)
         except KeypadError as err:
             await self.set_status("error", err=str(err))
             raise
         finally:
             self.running = None
+            if pin:
+                self.pin = ""
+                self.notify_entities()
         # an outdated entry for the same slot is replaced
         slot = reported_index(result["slot"])
         self.entries = [e for e in self.entries if not (e["kind"] == kind and e["slot"] == slot)]
@@ -371,6 +410,8 @@ class Manager:
         message = self.t["enrolled"].format(entry=self.label(entry))
         if "pin" in result:
             message += "\n\n" + self.t["pin_note"].format(pin=result["pin"])
+            if what == "pin_random":
+                self.show_pin(result["pin"])
         self._notify(message)
         return {"entry": entry, **({"pin": result["pin"]} if "pin" in result else {})}
 
@@ -596,7 +637,8 @@ def _manager(hass: HomeAssistant, call: ServiceCall) -> Manager:
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     async def enroll(call: ServiceCall):
-        return await _manager(hass, call).enroll(call.data["person"], call.data["what"], call.data["validity"])
+        return await _manager(hass, call).enroll(call.data["person"], call.data["what"], call.data["validity"],
+                                                call.data.get("pin"))
 
     async def update(call: ServiceCall) -> None:
         await _manager(hass, call).update_entry(call.data["entry_id"], call.data.get("person"), call.data.get("what"))
@@ -610,7 +652,8 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     base = {vol.Optional("config_entry_id"): cv.string}
     hass.services.async_register(DOMAIN, "enroll", enroll, schema=vol.Schema({
         **base, vol.Required("person"): cv.string, vol.Required("what"): vol.All(lambda v: "palm_right" if v == "palm" else v, vol.In(list(WHAT_OPTIONS))),
-        vol.Optional("validity", default="permanent"): vol.In(VALIDITY_OPTIONS)}),
+        vol.Optional("validity", default="permanent"): vol.In(VALIDITY_OPTIONS),
+        vol.Optional("pin"): vol.All(cv.string, vol.Match(r"^\d{6,12}$"))}),
         supports_response=SupportsResponse.OPTIONAL)
     hass.services.async_register(DOMAIN, "delete", delete, schema=vol.Schema({**base, vol.Required("entry_id"): cv.string}))
     hass.services.async_register(DOMAIN, "sync", sync, schema=vol.Schema(base))

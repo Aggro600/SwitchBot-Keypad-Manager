@@ -73,6 +73,11 @@ class Credentials(KeypadEntity, SensorEntity):
 
 class Status(KeypadEntity, SensorEntity):
     _attr_icon = "mdi:information-outline"
+    _unrecorded_attributes = frozenset({"pin"})
+
+    @property
+    def extra_state_attributes(self):
+        return {"pin": self.manager.new_pin} if self.manager.new_pin else None
 
     def __init__(self, manager):
         super().__init__(manager, "status")
