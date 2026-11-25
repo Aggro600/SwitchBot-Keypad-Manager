@@ -205,7 +205,8 @@ options. The lock force (soft/standard/strong) is intentionally not offered – 
 
 Settings are read on start, every 12 h, after every change and with the *Read settings* button; the Bluetooth
 connection is closed right after each read/write. Every setting was verified on hardware (Keypad Vision Pro, Lock Ultra:
-change, read back, restore). A sections example with both is in [docs/dashboard.yaml](docs/dashboard.yaml).
+change, read back, restore). A sections example with both is in [docs/dashboard.yaml](docs/dashboard.yaml)
+(English UI); a German settings view is in [docs/settings-view.de.yaml](docs/settings-view.de.yaml).
 
 ## Actions and event
 

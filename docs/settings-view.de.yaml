@@ -1,0 +1,368 @@
+# SwitchBot Keypad Manager – Einstellungen von Keypad und Schloss als eigene Ansicht (deutsche Oberfläche)
+# Dashboard → Bearbeiten → Ansicht hinzufügen → ⋮ → YAML bearbeiten → alles unterhalb dieses Kommentars einfügen.
+# Präfixe ersetzen: `keypad_haustur` (Keypad-Eintrag) und `schloss_haustur` (Schloss-Eintrag „Schloss Haustür“).
+# Englische Oberfläche: Abschnitte "Keypad settings" / "Lock settings" in dashboard.yaml.
+
+type: sections
+title: Keypad-Einstellungen
+path: keypad-einstellungen
+sections:
+- type: grid
+  cards:
+  - type: heading
+    heading: Schloss-Einstellungen
+    icon: mdi:lock-cog
+  - type: tile
+    entity: select.schloss_haustur_motorgeschwindigkeit
+    grid_options:
+      columns: 12
+    name: Motorgeschwindigkeit
+  - type: tile
+    entity: switch.schloss_haustur_led_licht
+    grid_options:
+      columns: 6
+    name: LED-Licht
+  - type: tile
+    entity: switch.schloss_haustur_ton
+    grid_options:
+      columns: 6
+    name: Ton
+  - type: tile
+    entity: switch.schloss_haustur_automatisch_verriegeln
+    grid_options:
+      columns: 6
+    name: Automatisch verriegeln
+  - type: tile
+    entity: number.schloss_haustur_automatisch_verriegeln_nach
+    grid_options:
+      columns: 6
+    name: nach (s)
+    visibility:
+    - condition: state
+      entity: switch.schloss_haustur_automatisch_verriegeln
+      state: 'on'
+  - type: tile
+    entity: switch.schloss_haustur_auto_verriegeln_pausieren
+    grid_options:
+      columns: 6
+    name: Auto-Verriegeln pausieren
+  - type: tile
+    entity: switch.schloss_haustur_halb_verriegeln
+    grid_options:
+      columns: 6
+    name: Halb verriegeln
+  - type: tile
+    entity: switch.schloss_haustur_taste_am_schloss
+    grid_options:
+      columns: 6
+    name: Taste am Schloss
+  - type: tile
+    entity: select.schloss_haustur_taste_drucken
+    grid_options:
+      columns: 6
+    name: 'Taste: Drücken'
+    visibility:
+    - condition: state
+      entity: switch.schloss_haustur_taste_am_schloss
+      state: 'on'
+  - type: tile
+    entity: select.schloss_haustur_taste_aktion
+    grid_options:
+      columns: 12
+    name: 'Taste: Aktion'
+    visibility:
+    - condition: state
+      entity: switch.schloss_haustur_taste_am_schloss
+      state: 'on'
+  - type: tile
+    entity: switch.schloss_haustur_ibeacon
+    grid_options:
+      columns: 6
+    name: iBeacon
+  - type: tile
+    entity: button.schloss_haustur_einstellungen_lesen
+    grid_options:
+      columns: 6
+    name: Einstellungen lesen
+  - type: heading
+    heading: Nachtmodus
+    heading_style: subtitle
+  - type: tile
+    entity: switch.schloss_haustur_nachtmodus
+    grid_options:
+      columns: 12
+    name: Nachtmodus
+  - type: tile
+    entity: time.schloss_haustur_nachtmodus_von
+    grid_options:
+      columns: 6
+    name: von
+    visibility:
+    - condition: state
+      entity: switch.schloss_haustur_nachtmodus
+      state: 'on'
+  - type: tile
+    entity: time.schloss_haustur_nachtmodus_bis
+    grid_options:
+      columns: 6
+    name: bis
+    visibility:
+    - condition: state
+      entity: switch.schloss_haustur_nachtmodus
+      state: 'on'
+  - type: tile
+    entity: select.schloss_haustur_nachtmodus_motorgeschwindigkeit
+    grid_options:
+      columns: 6
+    name: Geschwindigkeit
+    visibility:
+    - condition: state
+      entity: switch.schloss_haustur_nachtmodus
+      state: 'on'
+  - type: tile
+    entity: switch.schloss_haustur_nachtmodus_ton
+    grid_options:
+      columns: 6
+    name: Ton
+    visibility:
+    - condition: state
+      entity: switch.schloss_haustur_nachtmodus
+      state: 'on'
+  - type: tile
+    entity: switch.schloss_haustur_nachtmodus_bei_beginn_verriegeln
+    grid_options:
+      columns: 6
+    name: Bei Beginn verriegeln
+    visibility:
+    - condition: state
+      entity: switch.schloss_haustur_nachtmodus
+      state: 'on'
+  - type: tile
+    entity: select.schloss_haustur_nachtmodus_verriegeln
+    grid_options:
+      columns: 6
+    name: Verriegeln
+    visibility:
+    - condition: state
+      entity: switch.schloss_haustur_nachtmodus
+      state: 'on'
+  - type: tile
+    entity: switch.schloss_haustur_nachtmodus_automatisch_verriegeln
+    grid_options:
+      columns: 6
+    name: Automatisch verriegeln
+    visibility:
+    - condition: state
+      entity: switch.schloss_haustur_nachtmodus
+      state: 'on'
+  - type: tile
+    entity: number.schloss_haustur_nachtmodus_verriegeln_nach
+    grid_options:
+      columns: 6
+    name: nach (s)
+    visibility:
+    - condition: state
+      entity: switch.schloss_haustur_nachtmodus
+      state: 'on'
+  - type: tile
+    entity: switch.schloss_haustur_nachtmodus_automatisch_entriegeln_erlaubt
+    grid_options:
+      columns: 12
+    name: Automatisch entriegeln erlaubt
+    visibility:
+    - condition: state
+      entity: switch.schloss_haustur_nachtmodus
+      state: 'on'
+  - type: markdown
+    content: Einstellungen des Schlosses per Bluetooth – werden beim Start, alle 12 h, nach jeder Änderung und mit *Einstellungen lesen* aus dem Schloss gelesen. Geänderte Werte stehen sofort auch in der
+      SwitchBot-App.
+- type: grid
+  cards:
+  - type: heading
+    heading: Keypad-Einstellungen
+    icon: mdi:dialpad
+  - type: tile
+    entity: select.keypad_haustur_erkennungsausloser
+    name: Erkennungsauslöser
+    grid_options:
+      columns: 6
+  - type: tile
+    entity: switch.keypad_haustur_zeitplan_1
+    name: Zeitplan 1
+    grid_options:
+      columns: 6
+    visibility:
+    - condition: state
+      entity: select.keypad_haustur_erkennungsausloser
+      state: schedule
+  - type: tile
+    entity: select.keypad_haustur_zeitplan_1_tage
+    name: Tage
+    grid_options:
+      columns: 6
+    visibility:
+    - condition: state
+      entity: select.keypad_haustur_erkennungsausloser
+      state: schedule
+  - type: tile
+    entity: time.keypad_haustur_zeitplan_1_von
+    name: von
+    grid_options:
+      columns: 6
+    visibility:
+    - condition: state
+      entity: select.keypad_haustur_erkennungsausloser
+      state: schedule
+  - type: tile
+    entity: time.keypad_haustur_zeitplan_1_bis
+    name: bis
+    grid_options:
+      columns: 6
+    visibility:
+    - condition: state
+      entity: select.keypad_haustur_erkennungsausloser
+      state: schedule
+  - type: tile
+    entity: switch.keypad_haustur_zeitplan_2
+    name: Zeitplan 2
+    grid_options:
+      columns: 6
+    visibility:
+    - condition: state
+      entity: select.keypad_haustur_erkennungsausloser
+      state: schedule
+  - type: tile
+    entity: select.keypad_haustur_zeitplan_2_tage
+    name: Tage
+    grid_options:
+      columns: 6
+    visibility:
+    - condition: state
+      entity: select.keypad_haustur_erkennungsausloser
+      state: schedule
+  - type: tile
+    entity: time.keypad_haustur_zeitplan_2_von
+    name: von
+    grid_options:
+      columns: 6
+    visibility:
+    - condition: state
+      entity: select.keypad_haustur_erkennungsausloser
+      state: schedule
+  - type: tile
+    entity: time.keypad_haustur_zeitplan_2_bis
+    name: bis
+    grid_options:
+      columns: 6
+    visibility:
+    - condition: state
+      entity: select.keypad_haustur_erkennungsausloser
+      state: schedule
+  - type: tile
+    entity: switch.keypad_haustur_zeitplan_3
+    name: Zeitplan 3
+    grid_options:
+      columns: 6
+    visibility:
+    - condition: state
+      entity: select.keypad_haustur_erkennungsausloser
+      state: schedule
+  - type: tile
+    entity: select.keypad_haustur_zeitplan_3_tage
+    name: Tage
+    grid_options:
+      columns: 6
+    visibility:
+    - condition: state
+      entity: select.keypad_haustur_erkennungsausloser
+      state: schedule
+  - type: tile
+    entity: time.keypad_haustur_zeitplan_3_von
+    name: von
+    grid_options:
+      columns: 6
+    visibility:
+    - condition: state
+      entity: select.keypad_haustur_erkennungsausloser
+      state: schedule
+  - type: tile
+    entity: time.keypad_haustur_zeitplan_3_bis
+    name: bis
+    grid_options:
+      columns: 6
+    visibility:
+    - condition: state
+      entity: select.keypad_haustur_erkennungsausloser
+      state: schedule
+  - type: tile
+    entity: select.keypad_haustur_erkennungsempfindlichkeit
+    name: Empfindlichkeit
+    grid_options:
+      columns: 6
+  - type: tile
+    entity: number.keypad_haustur_deaktivierungsintervall
+    name: Deaktivierungsintervall
+    grid_options:
+      columns: 6
+  - type: tile
+    entity: select.keypad_haustur_fast_unlock
+    name: Fast Unlock
+    grid_options:
+      columns: 6
+  - type: tile
+    entity: select.keypad_haustur_lautstarke_sprachansage
+    name: Sprachansage
+    grid_options:
+      columns: 6
+  - type: tile
+    entity: select.keypad_haustur_lautstarke_signaltone
+    name: Signaltöne
+    grid_options:
+      columns: 6
+  - type: tile
+    entity: select.keypad_haustur_sprache_der_ansage
+    name: Sprache
+    grid_options:
+      columns: 6
+  - type: tile
+    entity: switch.keypad_haustur_demontagealarm
+    name: Demontagealarm
+    grid_options:
+      columns: 6
+  - type: tile
+    entity: switch.keypad_haustur_tastenton
+    name: Tastenton
+    grid_options:
+      columns: 6
+  - type: tile
+    entity: select.keypad_haustur_hintergrundbeleuchtung
+    name: Beleuchtung
+    grid_options:
+      columns: 6
+  - type: tile
+    entity: number.keypad_haustur_helligkeit
+    name: Helligkeit
+    grid_options:
+      columns: 6
+    visibility:
+    - condition: state
+      entity: select.keypad_haustur_hintergrundbeleuchtung
+      state_not: 'off'
+  - type: tile
+    entity: switch.keypad_haustur_verriegelungstaste
+    name: Verriegelungstaste
+    grid_options:
+      columns: 6
+  - type: tile
+    entity: switch.keypad_haustur_keypad_deaktiviert
+    name: Keypad deaktiviert
+    grid_options:
+      columns: 6
+  - type: tile
+    entity: button.keypad_haustur_keypad_einstellungen_lesen
+    name: Einstellungen lesen
+    grid_options:
+      columns: 6
+  - type: markdown
+    content: 'Einstellungen des Keypads per Bluetooth (wie in der SwitchBot-App). *Keypad deaktiviert* = niemand kann am Keypad entsperren. Bei *Erkennungsauslöser: Zeitplan* erscheinen bis zu 3 Zeitpläne
+      (an/aus, Tage, von/bis). Andere Tag-Kombinationen als in der Liste zeigt *Eigene Auswahl (aus der App)*. Gelesen wird beim Start, alle 12 h, nach jeder Änderung und mit *Einstellungen lesen*.'

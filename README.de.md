@@ -34,7 +34,8 @@ nicht erreichbar ist.
   LED, Ton, automatisch verriegeln + Zeit, pausieren, halb verriegeln, Taste am Schloss (Drücken, Aktion), iBeacon und
   der komplette **Nachtmodus** (von/bis, Geschwindigkeit, Ton, bei Beginn verriegeln, ganz/halb, Auto-Verriegeln,
   Auto-Entriegeln). Die Schlosskraft fehlt absichtlich (danach müsste neu kalibriert werden). Gelesen wird beim Start,
-  alle 12 h, nach jeder Änderung und per Knopf; alles an echter Hardware geprüft.
+  alle 12 h, nach jeder Änderung und per Knopf; alles an echter Hardware geprüft. Fertige Ansicht zum Kopieren:
+  [docs/settings-view.de.yaml](docs/settings-view.de.yaml) (Keypad-Einstellungen mit Zeitplänen + Schloss-Einstellungen).
 - **Nur Auswahl:** alles über Auswahllisten und Knöpfe; Freitext nur optional (neue Person).
 - Mehrere Keypads: Integration je Keypad einmal hinzufügen.
 
