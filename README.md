@@ -61,7 +61,7 @@ fingerprints, faces, palms, PIN codes and NFC cards, see *who* unlocked *how*, a
 
 | | |
 |---|---|
-| Home Assistant | 2026.9 or newer |
+| Home Assistant | 2026.9 or newer (ships PySwitchbot with Keypad Vision support) |
 | Keypad | SwitchBot Keypad Vision or Keypad Vision Pro, set up in the SwitchBot app (your SwitchBot account is used once to get the encryption key) |
 | Bluetooth | a Bluetooth adapter or ESPHome Bluetooth proxy in range of the keypad |
 | For "who unlocked" and approval | an ESP32 with the [switchbot-keypad-bridge](https://github.com/pierluigizagaria/switchbot-keypad-bridge) |
