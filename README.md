@@ -188,7 +188,8 @@ The keypad entry also gets **configuration entities** for the keypad itself:
 
 | Entity | Values |
 |---|---|
-| Detection trigger | auto / manual / schedule (the schedule times are kept by the SwitchBot app, they are not sent to the keypad over Bluetooth) |
+| Detection trigger | auto / manual / schedule |
+| Schedules 1–3 | on/off, days (every day, Mon–Fri, weekend, a single day; other combinations from the app are shown as *custom*), from/until – local time (the keypad stores UTC) |
 | Detection sensitivity | low / medium / high |
 | Deactivation interval | 5–60 s |
 | Fast unlock | off / always on / auto |

@@ -65,7 +65,8 @@ After too many failed attempts the keypad locks itself for a while (lockout alar
 | Fast unlock | `0107` → `01 <00 off / 01 always / 02 auto>` | `0107 <v>` |
 | Detection sensitivity | `0108` → `01 <01 low … 03 high>` | `0108 <v>` |
 | (unknown, 3 bytes) | `0109` → `01 02 01 01` | write all 3 bytes or the others are cleared |
-| Detection trigger | `010A` → `01 <01 auto / 02 manual / 03 schedule>` | `010A <v>` (the app sends no schedule times over BLE – captured with an HCI log) |
+| Detection trigger | `010A` → `01 <01 auto / 02 manual / 03 schedule>` | `010A <v>` |
+| Schedules | `57004F01` → `01 <count>`; `57004F<slot<<4\|2>` → `01 <enabled> <days> <h> <m> <dur hi> <dur lo>` | `57004E01 <count>` then every slot `57004E<slot<<4\|2> <enabled> <days> <h> <m> <dur hi> <dur lo>`; days bit0 Sunday … bit6 Saturday (bit7 once), start in **UTC**, duration in minutes |
 | Deactivation interval | `010B` → `01 <seconds>` | `010B <s>` |
 | Volume | `010C` → `01 <voice> <tones>` (1 mute … 4 high) | `010C <v> <01 tones / 02 voice>`, one byte = both |
 

@@ -15,6 +15,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
         async_add_entities(lock_entities("time", hass.data[DOMAIN][entry.entry_id]))
         return
     manager = hass.data[DOMAIN][entry.entry_id]
+    from .keypad_settings import setting_entities
+    async_add_entities(setting_entities("time", manager))
     async_add_entities([WindowTime(manager, which, number) for number in range(1, WINDOWS + 1)
                         for which in ("from", "until")])
 

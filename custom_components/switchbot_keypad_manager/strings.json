@@ -319,6 +319,54 @@
           "english": "English",
           "german": "German"
         }
+      },
+      "kp_schedule_1_days": {
+        "name": "Schedule 1 days",
+        "state": {
+          "all": "Every day",
+          "weekdays": "Mon–Fri",
+          "weekend": "Sat + Sun",
+          "sun": "Sunday",
+          "mon": "Monday",
+          "tue": "Tuesday",
+          "wed": "Wednesday",
+          "thu": "Thursday",
+          "fri": "Friday",
+          "sat": "Saturday",
+          "custom": "Custom (set in the app)"
+        }
+      },
+      "kp_schedule_2_days": {
+        "name": "Schedule 2 days",
+        "state": {
+          "all": "Every day",
+          "weekdays": "Mon–Fri",
+          "weekend": "Sat + Sun",
+          "sun": "Sunday",
+          "mon": "Monday",
+          "tue": "Tuesday",
+          "wed": "Wednesday",
+          "thu": "Thursday",
+          "fri": "Friday",
+          "sat": "Saturday",
+          "custom": "Custom (set in the app)"
+        }
+      },
+      "kp_schedule_3_days": {
+        "name": "Schedule 3 days",
+        "state": {
+          "all": "Every day",
+          "weekdays": "Mon–Fri",
+          "weekend": "Sat + Sun",
+          "sun": "Sunday",
+          "mon": "Monday",
+          "tue": "Tuesday",
+          "wed": "Wednesday",
+          "thu": "Thursday",
+          "fri": "Friday",
+          "sat": "Saturday",
+          "custom": "Custom (set in the app)"
+        }
       }
     },
     "button": {
@@ -401,6 +449,15 @@
       },
       "kp_tamper_alarm": {
         "name": "Tamper alarm"
+      },
+      "kp_schedule_1_on": {
+        "name": "Schedule 1"
+      },
+      "kp_schedule_2_on": {
+        "name": "Schedule 2"
+      },
+      "kp_schedule_3_on": {
+        "name": "Schedule 3"
       }
     },
     "text": {
@@ -432,6 +489,24 @@
       },
       "night_end": {
         "name": "Night mode until"
+      },
+      "kp_schedule_1_from": {
+        "name": "Schedule 1 from"
+      },
+      "kp_schedule_1_until": {
+        "name": "Schedule 1 until"
+      },
+      "kp_schedule_2_from": {
+        "name": "Schedule 2 from"
+      },
+      "kp_schedule_2_until": {
+        "name": "Schedule 2 until"
+      },
+      "kp_schedule_3_from": {
+        "name": "Schedule 3 from"
+      },
+      "kp_schedule_3_until": {
+        "name": "Schedule 3 until"
       }
     },
     "number": {

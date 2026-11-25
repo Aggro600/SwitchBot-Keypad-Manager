@@ -10,13 +10,19 @@
   010B  deactivation interval  seconds                             write 570F52010B <s>
   5702  basic info             byte9 tamper alarm 01 off / 02 on   write 570F520103 <01|02>
   010D  voice language         01 English / 04 German (others unknown) write 570F52010D <v>
+  Schedules for "detection trigger: schedule" (lock-style commands, times in UTC):
+        57004F01 -> 01 <count>;  57004F<slot<<4|2> -> 01 <enabled> <days bit0 Sun..bit6 Sat> <h> <m> <dur hi> <dur lo>
+        write 57004E01 <count>, 57004E<slot<<4|2> <enabled> <days> <h> <m> <dur hi> <dur lo>
   010C  volume                 read <voice> <tones>, 1 mute … 4 high
                                write 570F52010C <v> <01 tones | 02 voice>
 """
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, time as dtime, timedelta
 import logging
+
+from homeassistant.components.time import TimeEntity
+from homeassistant.util import dt as dt_util
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.components.number import NumberEntity, NumberMode
@@ -38,6 +44,23 @@ FAST_UNLOCK = ["off", "always", "auto"]
 VOLUMES = ["mute", "low", "medium", "high"]
 BACKLIGHT = ["off", "auto", "on"]
 LANGUAGES = {"english": 1, "german": 4}
+SLOTS = 3
+DAY_SETS = {"all": 0x7F, "weekdays": 0x3E, "weekend": 0x41, "sun": 0x01, "mon": 0x02, "tue": 0x04, "wed": 0x08,
+            "thu": 0x10, "fri": 0x20, "sat": 0x40}
+SCHEDULE_DAYS = [*DAY_SETS, "custom"]
+
+
+def _rot(days: int, shift: int) -> int:
+    """Move every weekday bit by shift days (bit0 Sunday … bit6 Saturday)."""
+    out = 0
+    for d in range(7):
+        if days & (1 << d):
+            out |= 1 << ((d + shift) % 7)
+    return out
+
+
+def _utc_offset_min() -> int:
+    return int(dt_util.now().utcoffset().total_seconds() // 60)
 SIGNAL = "switchbot_keypad_manager_kpset_{}"
 
 
@@ -79,6 +102,17 @@ class KeypadSettings:
         s["tamper_alarm"] = r[9] == 2
         r = await self._r("570F53010D", 2)
         s["language"] = next((k for k, v in LANGUAGES.items() if v == r[1]), None)
+        slots = []
+        count = (await self._r("57004F01", 2))[1]
+        for i in range(min(count, SLOTS)):
+            b = await self._r(f"57004F{(i << 4) | 2:02X}", 7)
+            start = b[3] * 60 + b[4] + _utc_offset_min()
+            shift = start // 1440
+            start %= 1440
+            dur = b[5] << 8 | b[6]
+            slots.append({"on": b[1] != 0, "days": _rot(b[2] & 0x7F, shift), "once": bool(b[2] & 0x80),
+                          "from": start, "until": (start + dur) % 1440})
+        s["schedules"] = slots
         r = await self._r("570F53010C", 3)
         s["voice_volume"] = VOLUMES[min(max(r[1], 1), 4) - 1]
         s["tone_volume"] = VOLUMES[min(max(r[2], 1), 4) - 1]
@@ -132,6 +166,34 @@ class KeypadSettings:
                 r = await self.m.keypad.command(cmd)
                 if r[0] != 1:
                     raise KeypadError(f"Keypad rejected the setting ({r.hex()})")
+                await self._read_all()
+                self.available = True
+            finally:
+                await self.m.keypad.release()
+        async_dispatcher_send(self.m.hass, SIGNAL.format(self.m.entry.entry_id))
+
+    async def set_schedule(self, n: int, field: str, value) -> None:
+        """Change schedule slot n (0-based); all slots are written again, like the SwitchBot app does."""
+        slots = [dict(x) for x in self.s.get("schedules", [])]
+        while len(slots) <= n:
+            slots.append({"on": False, "days": 0x3E, "once": False, "from": 8 * 60, "until": 22 * 60})
+        slots[n][field] = value
+        off = _utc_offset_min()
+        cmds = [f"57004E01{len(slots):02X}"]
+        for i, x in enumerate(slots):
+            start = x["from"] - off
+            shift = -1 if start < 0 else (1 if start >= 1440 else 0)
+            start %= 1440
+            dur = (x["until"] - x["from"]) % 1440 or 1440
+            days = _rot(x["days"], shift) | (0x80 if x.get("once") else 0)
+            cmds.append(f"57004E{(i << 4) | 2:02X}{1 if x['on'] else 0:02X}{days:02X}{start // 60:02X}{start % 60:02X}"
+                        f"{dur >> 8:02X}{dur & 0xFF:02X}")
+        async with self.m.keypad.lock:
+            try:
+                for cmd in cmds:
+                    r = await self.m.keypad.command(cmd)
+                    if r[0] != 1:
+                        raise KeypadError(f"Keypad rejected the schedule ({r.hex()})")
                 await self._read_all()
                 self.available = True
             finally:
@@ -229,10 +291,66 @@ class SettingsRefresh(KeypadEntity, ButtonEntity):
         await self.manager.settings.refresh()
 
 
+class _ScheduleEntity(_SettingEntity):
+    def __init__(self, manager, n: int, field: str, icon: str) -> None:
+        super().__init__(manager, f"schedule_{n + 1}_{field}", icon)
+        self.n, self.field = n, field
+
+    @property
+    def available(self) -> bool:
+        return self.ks.available and "schedules" in self.ks.s
+
+    def _slot(self):
+        sl = self.ks.s.get("schedules", [])
+        return sl[self.n] if self.n < len(sl) else None
+
+
+class ScheduleSwitch(_ScheduleEntity, SwitchEntity):
+    @property
+    def is_on(self):
+        x = self._slot()
+        return bool(x and x["on"])
+
+    async def async_turn_on(self, **kwargs) -> None:
+        await self.ks.set_schedule(self.n, "on", True)
+
+    async def async_turn_off(self, **kwargs) -> None:
+        await self.ks.set_schedule(self.n, "on", False)
+
+
+class ScheduleTime(_ScheduleEntity, TimeEntity):
+    @property
+    def native_value(self):
+        x = self._slot()
+        return dtime(x[self.field] // 60, x[self.field] % 60) if x else None
+
+    async def async_set_value(self, value: dtime) -> None:
+        await self.ks.set_schedule(self.n, self.field, value.hour * 60 + value.minute)
+
+
+class ScheduleDays(_ScheduleEntity, SelectEntity):
+    _attr_options = SCHEDULE_DAYS
+
+    @property
+    def current_option(self):
+        x = self._slot()
+        if not x:
+            return None
+        return next((k for k, v in DAY_SETS.items() if v == x["days"]), "custom")
+
+    async def async_select_option(self, option: str) -> None:
+        if option in DAY_SETS:
+            await self.ks.set_schedule(self.n, "days", DAY_SETS[option])
+
+
 def setting_entities(platform: str, m) -> list:
+    if platform == "time":
+        return [ScheduleTime(m, n, f, i) for n in range(SLOTS)
+                for f, i in (("from", "mdi:clock-start"), ("until", "mdi:clock-end"))]
     if platform == "switch":
         return [SettingSwitch(m, "lock_button", "mdi:lock-check"), SettingSwitch(m, "keypad_disabled", "mdi:dialpad"),
-                SettingSwitch(m, "key_tone", "mdi:volume-high"), SettingSwitch(m, "tamper_alarm", "mdi:alarm-light")]
+                SettingSwitch(m, "key_tone", "mdi:volume-high"), SettingSwitch(m, "tamper_alarm", "mdi:alarm-light"),
+                *[ScheduleSwitch(m, n, "on", "mdi:calendar-clock") for n in range(SLOTS)]]
     if platform == "select":
         return [SettingSelect(m, "trigger", "mdi:radar", TRIGGERS),
                 SettingSelect(m, "sensitivity", "mdi:signal-distance-variant", SENSITIVITY),
@@ -240,7 +358,8 @@ def setting_entities(platform: str, m) -> list:
                 SettingSelect(m, "voice_volume", "mdi:account-voice", VOLUMES),
                 SettingSelect(m, "tone_volume", "mdi:bell-ring", VOLUMES),
                 SettingSelect(m, "backlight", "mdi:brightness-6", BACKLIGHT),
-                SettingSelect(m, "language", "mdi:translate", list(LANGUAGES))]
+                SettingSelect(m, "language", "mdi:translate", list(LANGUAGES)),
+                *[ScheduleDays(m, n, "days", "mdi:calendar-week") for n in range(SLOTS)]]
     if platform == "number":
         return [SettingNumber(m, "deactivation_interval", "mdi:timer-sand", 5, 60, "s"),
                 SettingNumber(m, "backlight_level", "mdi:brightness-percent", 1, 5)]

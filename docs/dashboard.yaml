@@ -228,6 +228,102 @@ sections:
       grid_options:
         columns: 6
     - type: tile
+      entity: switch.front_door_schedule_1
+      grid_options:
+        columns: 6
+      visibility:
+      - condition: state
+        entity: select.front_door_detection_trigger
+        state: schedule
+    - type: tile
+      entity: select.front_door_schedule_1_days
+      grid_options:
+        columns: 6
+      visibility:
+      - condition: state
+        entity: select.front_door_detection_trigger
+        state: schedule
+    - type: tile
+      entity: time.front_door_schedule_1_from
+      grid_options:
+        columns: 6
+      visibility:
+      - condition: state
+        entity: select.front_door_detection_trigger
+        state: schedule
+    - type: tile
+      entity: time.front_door_schedule_1_until
+      grid_options:
+        columns: 6
+      visibility:
+      - condition: state
+        entity: select.front_door_detection_trigger
+        state: schedule
+    - type: tile
+      entity: switch.front_door_schedule_2
+      grid_options:
+        columns: 6
+      visibility:
+      - condition: state
+        entity: select.front_door_detection_trigger
+        state: schedule
+    - type: tile
+      entity: select.front_door_schedule_2_days
+      grid_options:
+        columns: 6
+      visibility:
+      - condition: state
+        entity: select.front_door_detection_trigger
+        state: schedule
+    - type: tile
+      entity: time.front_door_schedule_2_from
+      grid_options:
+        columns: 6
+      visibility:
+      - condition: state
+        entity: select.front_door_detection_trigger
+        state: schedule
+    - type: tile
+      entity: time.front_door_schedule_2_until
+      grid_options:
+        columns: 6
+      visibility:
+      - condition: state
+        entity: select.front_door_detection_trigger
+        state: schedule
+    - type: tile
+      entity: switch.front_door_schedule_3
+      grid_options:
+        columns: 6
+      visibility:
+      - condition: state
+        entity: select.front_door_detection_trigger
+        state: schedule
+    - type: tile
+      entity: select.front_door_schedule_3_days
+      grid_options:
+        columns: 6
+      visibility:
+      - condition: state
+        entity: select.front_door_detection_trigger
+        state: schedule
+    - type: tile
+      entity: time.front_door_schedule_3_from
+      grid_options:
+        columns: 6
+      visibility:
+      - condition: state
+        entity: select.front_door_detection_trigger
+        state: schedule
+    - type: tile
+      entity: time.front_door_schedule_3_until
+      grid_options:
+        columns: 6
+      visibility:
+      - condition: state
+        entity: select.front_door_detection_trigger
+        state: schedule
+    - type: tile
       entity: select.front_door_detection_sensitivity
       grid_options:
         columns: 6

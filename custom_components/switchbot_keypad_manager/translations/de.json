@@ -319,6 +319,54 @@
           "english": "Englisch",
           "german": "Deutsch"
         }
+      },
+      "kp_schedule_1_days": {
+        "name": "Zeitplan 1 Tage",
+        "state": {
+          "all": "Jeden Tag",
+          "weekdays": "Mo–Fr",
+          "weekend": "Sa + So",
+          "sun": "Sonntag",
+          "mon": "Montag",
+          "tue": "Dienstag",
+          "wed": "Mittwoch",
+          "thu": "Donnerstag",
+          "fri": "Freitag",
+          "sat": "Samstag",
+          "custom": "Eigene Auswahl (aus der App)"
+        }
+      },
+      "kp_schedule_2_days": {
+        "name": "Zeitplan 2 Tage",
+        "state": {
+          "all": "Jeden Tag",
+          "weekdays": "Mo–Fr",
+          "weekend": "Sa + So",
+          "sun": "Sonntag",
+          "mon": "Montag",
+          "tue": "Dienstag",
+          "wed": "Mittwoch",
+          "thu": "Donnerstag",
+          "fri": "Freitag",
+          "sat": "Samstag",
+          "custom": "Eigene Auswahl (aus der App)"
+        }
+      },
+      "kp_schedule_3_days": {
+        "name": "Zeitplan 3 Tage",
+        "state": {
+          "all": "Jeden Tag",
+          "weekdays": "Mo–Fr",
+          "weekend": "Sa + So",
+          "sun": "Sonntag",
+          "mon": "Montag",
+          "tue": "Dienstag",
+          "wed": "Mittwoch",
+          "thu": "Donnerstag",
+          "fri": "Freitag",
+          "sat": "Samstag",
+          "custom": "Eigene Auswahl (aus der App)"
+        }
       }
     },
     "button": {
@@ -401,6 +449,15 @@
       },
       "kp_tamper_alarm": {
         "name": "Demontagealarm"
+      },
+      "kp_schedule_1_on": {
+        "name": "Zeitplan 1"
+      },
+      "kp_schedule_2_on": {
+        "name": "Zeitplan 2"
+      },
+      "kp_schedule_3_on": {
+        "name": "Zeitplan 3"
       }
     },
     "text": {
@@ -432,6 +489,24 @@
       },
       "night_end": {
         "name": "Nachtmodus bis"
+      },
+      "kp_schedule_1_from": {
+        "name": "Zeitplan 1 von"
+      },
+      "kp_schedule_1_until": {
+        "name": "Zeitplan 1 bis"
+      },
+      "kp_schedule_2_from": {
+        "name": "Zeitplan 2 von"
+      },
+      "kp_schedule_2_until": {
+        "name": "Zeitplan 2 bis"
+      },
+      "kp_schedule_3_from": {
+        "name": "Zeitplan 3 von"
+      },
+      "kp_schedule_3_until": {
+        "name": "Zeitplan 3 bis"
       }
     },
     "number": {

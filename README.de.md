@@ -27,7 +27,7 @@ nicht erreichbar ist.
 - **Abgleich:** vergleicht die Anzahl im Keypad mit der Liste und zeigt Zugänge ohne Namen (z. B. aus der
   SwitchBot-App). Zuordnen: einmal damit entsperren, *Letzte Entsperrung zuordnen*. Für unbekannte Zugänge gibt es
   eine eigene Regel (auch *Nur Automation*) – z. B. „jedes Entsperren startet nur mein Tür-Skript“.
-- **Keypad-Einstellungen:** Erkennungsauslöser und -empfindlichkeit, Deaktivierungsintervall, Fast Unlock,
+- **Keypad-Einstellungen:** Erkennungsauslöser und -empfindlichkeit, bis zu 3 Zeitpläne (an/aus, Tage, von/bis), Deaktivierungsintervall, Fast Unlock,
   Lautstärke Sprachansage und Signaltöne, Sprache der Ansage, Demontagealarm, Tastenton, Hintergrundbeleuchtung und Helligkeit, Verriegelungstaste,
   Keypad deaktivieren – wie in der SwitchBot-App.
 - **Lock-Ultra-Einstellungen** (Schloss als zweiten Eintrag hinzufügen): Motorgeschwindigkeit (schnell/normal/leise),
