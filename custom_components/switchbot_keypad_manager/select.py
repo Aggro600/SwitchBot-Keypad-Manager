@@ -10,11 +10,11 @@ from .entity import KeypadEntity
 async def async_setup_entry(hass, entry, async_add_entities):
     if entry.data.get("type") == "lock":
         from .lock import lock_entities
-        async_add_entities(lock_entities("select", hass.data[DOMAIN][entry.entry_id]))
+        async_add_entities(lock_entities("select", entry.runtime_data))
         return
     from .keypad_settings import setting_entities
-    async_add_entities(setting_entities("select", hass.data[DOMAIN][entry.entry_id]))
-    m = hass.data[DOMAIN][entry.entry_id]
+    async_add_entities(setting_entities("select", entry.runtime_data))
+    m = entry.runtime_data
     async_add_entities([Person(m), ChoiceSelect(m, "what", list(WHAT_OPTIONS), "mdi:fingerprint"),
                         ChoiceSelect(m, "validity", VALIDITY_OPTIONS, "mdi:calendar-clock"), Entry(m),
                         PersonRule(m), UnknownRule(m), EntryRule(m), EntryDays(m), EntryDays(m, 2), EntryDays(m, 3),

@@ -30,35 +30,82 @@ cards:
       entity: select.front_door_what
       state: pin_custom
     row:
-      entity: text.front_door_pin_code_6_12_digits
-      name: Own PIN (6–12 digits)
+      type: button
+      name: 'PIN code: open the action "Enroll credential" (PIN field)'
+      icon: mdi:dialpad
+      action_name: Open
+      tap_action:
+        action: navigate
+        navigation_path: /config/tools/action?service=switchbot_keypad_manager.enroll
   - entity: select.front_door_validity
     name: Validity
-  - type: buttons
-    entities:
-    - entity: button.front_door_start_enrollment
-      name: Enroll
-      icon: mdi:account-plus
-    - entity: button.front_door_update_entry
-      name: Update
-      icon: mdi:account-edit
-    - entity: button.front_door_delete_entry
-      name: Delete
-      icon: mdi:account-remove
-    - entity: button.front_door_delete_everything_keypad_list
-      name: All (2×)
-      icon: mdi:delete-alert
-  - type: buttons
-    entities:
-    - entity: button.front_door_assign_last_unlock
-      name: Assign
-      icon: mdi:account-arrow-left
-    - entity: button.front_door_sync_with_keypad
-      name: Sync
-      icon: mdi:sync
-    - entity: button.front_door_cancel
-      name: Cancel
-      icon: mdi:cancel
+  - type: button
+    name: Enroll
+    icon: mdi:account-plus
+    action_name: Run
+    tap_action:
+      action: perform-action
+      perform_action: switchbot_keypad_manager.enroll
+      data:
+        entity_id: sensor.front_door_status
+  - type: button
+    name: Update entry
+    icon: mdi:account-edit
+    action_name: Run
+    tap_action:
+      action: perform-action
+      perform_action: switchbot_keypad_manager.update
+      data:
+        entity_id: sensor.front_door_status
+  - type: button
+    name: Delete entry
+    icon: mdi:account-remove
+    action_name: Run
+    tap_action:
+      action: perform-action
+      perform_action: switchbot_keypad_manager.delete
+      data:
+        entity_id: sensor.front_door_status
+      confirmation:
+        text: Delete this entry (also on the keypad)?
+  - type: button
+    name: Delete everything (keypad + list)
+    icon: mdi:delete-alert
+    action_name: Run
+    tap_action:
+      action: perform-action
+      perform_action: switchbot_keypad_manager.delete_all
+      data:
+        entity_id: sensor.front_door_status
+      confirmation:
+        text: Delete ALL credentials on the keypad and the list?
+  - type: button
+    name: Assign last unlock
+    icon: mdi:account-arrow-left
+    action_name: Run
+    tap_action:
+      action: perform-action
+      perform_action: switchbot_keypad_manager.assign_last
+      data:
+        entity_id: sensor.front_door_status
+  - type: button
+    name: Sync with keypad
+    icon: mdi:sync
+    action_name: Run
+    tap_action:
+      action: perform-action
+      perform_action: switchbot_keypad_manager.sync
+      data:
+        entity_id: sensor.front_door_status
+  - type: button
+    name: Cancel
+    icon: mdi:cancel
+    action_name: Run
+    tap_action:
+      action: perform-action
+      perform_action: switchbot_keypad_manager.cancel
+      data:
+        entity_id: sensor.front_door_status
   - type: divider
   - entity: sensor.front_door_status
     name: Status
@@ -161,9 +208,9 @@ cards:
     \ {{ 'the bridge opens itself' if fm=='all' else 'the door stays locked' }}\n{% else %}Select an **entry** above – this card then explains what happens with that finger/face/…{% endif %}"
 - type: markdown
   content: |-
-    **New:** person + what (+ validity) → *Enroll* → go to the keypad.
+    **New:** person + what (+ validity) → *Enroll* → go to the keypad (PIN code: the button opens the action with the PIN field).
     **Update:** select an entry (person/what are pre-filled) → change → *Update*.
-    **Delete:** select an entry → *Delete* – always on the keypad *and* in the list, also *Unknown – …* (Home Assistant finds the slot itself). *All (2×)* = press twice within 15 s.
+    **Delete:** select an entry → *Delete* – always on the keypad *and* in the list, also *Unknown – …* (Home Assistant finds the slot itself). *Delete everything* asks first. All buttons are admin-only actions.
     **Without a name:** unlock with it → choose person/what → *Assign*.
 
     **Which rule applies?** (only with *Approve unlocks* on; off = the bridge always opens immediately)

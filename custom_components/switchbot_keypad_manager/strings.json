@@ -89,6 +89,21 @@
       },
       "status": {
         "name": "Status"
+      },
+      "battery": {
+        "name": "Battery"
+      },
+      "rssi": {
+        "name": "Bluetooth signal"
+      },
+      "radar_triggered_level": {
+        "name": "Radar trigger level"
+      },
+      "radar_triggered_distance": {
+        "name": "Radar trigger distance"
+      },
+      "pir_triggered_level": {
+        "name": "Motion trigger level"
       }
     },
     "select": {
@@ -111,8 +126,7 @@
           "face": "Face",
           "palm_right": "Palm (right)",
           "palm_left": "Palm (left)",
-          "pin_custom": "PIN code (own)",
-          "pin_random": "PIN code (random)",
+          "pin_custom": "PIN code",
           "nfc_card": "NFC card"
         }
       },
@@ -371,35 +385,11 @@
       }
     },
     "button": {
-      "enroll": {
-        "name": "Start enrollment"
-      },
-      "delete": {
-        "name": "Delete entry"
-      },
-      "assign_last": {
-        "name": "Assign last unlock"
-      },
-      "sync": {
-        "name": "Sync with keypad"
-      },
-      "cancel": {
-        "name": "Cancel"
-      },
-      "update": {
-        "name": "Update entry"
-      },
-      "delete_all": {
-        "name": "Delete everything (keypad + list)"
-      },
       "refresh": {
         "name": "Read settings"
       },
       "kp_refresh": {
         "name": "Read keypad settings"
-      },
-      "pin_hide": {
-        "name": "New PIN noted – hide"
       }
     },
     "switch": {
@@ -467,9 +457,6 @@
     "text": {
       "new_person": {
         "name": "New person (optional)"
-      },
-      "pin_code": {
-        "name": "PIN code (6–12 digits)"
       }
     },
     "time": {
@@ -529,78 +516,176 @@
       "kp_backlight_level": {
         "name": "Backlight level"
       }
+    },
+    "binary_sensor": {
+      "battery_charging": {
+        "name": "Charging"
+      },
+      "lockout_alarm": {
+        "name": "Lockout alarm"
+      },
+      "tamper_alarm": {
+        "name": "Tamper"
+      },
+      "duress_alarm": {
+        "name": "Duress alarm"
+      },
+      "low_temperature": {
+        "name": "Low temperature"
+      },
+      "high_temperature": {
+        "name": "High temperature"
+      }
+    },
+    "event": {
+      "doorbell": {
+        "name": "Doorbell",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "ring": "Ring"
+            }
+          }
+        }
+      }
     }
   },
   "services": {
     "enroll": {
       "name": "Enroll credential",
-      "description": "Starts enrollment on the keypad (place finger, look into the camera, show palm, hold card) or creates a random PIN.",
+      "description": "Starts enrollment at the keypad (place the finger, look into the camera, show the palm, hold the card) or creates a PIN code. Administrators only. Empty fields are taken from the keypad's selects (person, what, validity).",
       "fields": {
         "config_entry_id": {
           "name": "Keypad",
           "description": "Only needed with several keypads."
+        },
+        "entity_id": {
+          "name": "Keypad entity",
+          "description": "Instead of Keypad: any entity of the keypad, e.g. its status sensor."
         },
         "person": {
           "name": "Person",
-          "description": "Name of the person."
+          "description": "Name of the person (empty = \"Person\" select)."
         },
         "what": {
           "name": "What",
-          "description": "Finger, face, palm, PIN or NFC card."
+          "description": "Finger, face, palm, PIN code or NFC card (empty = \"What\" select)."
         },
         "validity": {
           "name": "Validity",
-          "description": "Time limit (PIN, fingerprint, NFC)."
+          "description": "Time limit (PIN, finger, NFC; empty = \"Validity\" select)."
         },
         "pin": {
           "name": "PIN",
-          "description": "Your own PIN (6–12 digits) for \"PIN code (own)\"."
-        }
-      }
-    },
-    "delete": {
-      "name": "Delete credential",
-      "description": "Deletes a credential on the keypad and from the list.",
-      "fields": {
-        "config_entry_id": {
-          "name": "Keypad",
-          "description": "Only needed with several keypads."
-        },
-        "entry_id": {
-          "name": "Entry",
-          "description": "ID from the 'entries' attribute of the Credentials sensor."
-        }
-      }
-    },
-    "sync": {
-      "name": "Sync with keypad",
-      "description": "Reads the number of credentials stored on the keypad.",
-      "fields": {
-        "config_entry_id": {
-          "name": "Keypad",
-          "description": "Only needed with several keypads."
+          "description": "PIN code with 6–12 digits (only for \"PIN code\"). Never stored or shown."
         }
       }
     },
     "update": {
       "name": "Update credential",
-      "description": "Changes person and/or finger of an entry (the keypad itself stores no names).",
+      "description": "Changes person and/or finger of an entry (the keypad stores no names). Without an entry the \"Entry\" select is used; for \"Unknown – …\" the person is marked and assigned on the next unlock. Administrators only.",
       "fields": {
         "config_entry_id": {
           "name": "Keypad",
           "description": "Only needed with several keypads."
         },
+        "entity_id": {
+          "name": "Keypad entity",
+          "description": "Instead of Keypad: any entity of the keypad, e.g. its status sensor."
+        },
         "entry_id": {
           "name": "Entry",
-          "description": "ID from the 'entries' attribute of the Credentials sensor."
+          "description": "ID from the \"entries\" attribute of the Credentials sensor (empty = \"Entry\" select)."
         },
         "person": {
           "name": "Person",
-          "description": "New person (optional)."
+          "description": "Name of the person (empty = \"Person\" select)."
         },
         "what": {
           "name": "What",
-          "description": "New finger (optional, kind must stay the same)."
+          "description": "Finger, face, palm, PIN code or NFC card (empty = \"What\" select)."
+        }
+      }
+    },
+    "delete": {
+      "name": "Delete credential",
+      "description": "Deletes a credential on the keypad and from the list. Without an entry the \"Entry\" select is used (also \"Unknown – …\"). Administrators only.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Keypad",
+          "description": "Only needed with several keypads."
+        },
+        "entity_id": {
+          "name": "Keypad entity",
+          "description": "Instead of Keypad: any entity of the keypad, e.g. its status sensor."
+        },
+        "entry_id": {
+          "name": "Entry",
+          "description": "ID from the \"entries\" attribute of the Credentials sensor (empty = \"Entry\" select)."
+        }
+      }
+    },
+    "assign_last": {
+      "name": "Assign last unlock",
+      "description": "Assigns the last unknown unlock to a person (list only). Administrators only.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Keypad",
+          "description": "Only needed with several keypads."
+        },
+        "entity_id": {
+          "name": "Keypad entity",
+          "description": "Instead of Keypad: any entity of the keypad, e.g. its status sensor."
+        },
+        "person": {
+          "name": "Person",
+          "description": "Name of the person (empty = \"Person\" select)."
+        },
+        "what": {
+          "name": "What",
+          "description": "Finger, face, palm, PIN code or NFC card (empty = \"What\" select)."
+        }
+      }
+    },
+    "sync": {
+      "name": "Sync with keypad",
+      "description": "Reads the number of credentials on the keypad. Administrators only.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Keypad",
+          "description": "Only needed with several keypads."
+        },
+        "entity_id": {
+          "name": "Keypad entity",
+          "description": "Instead of Keypad: any entity of the keypad, e.g. its status sensor."
+        }
+      }
+    },
+    "delete_all": {
+      "name": "Delete everything (keypad + list)",
+      "description": "Deletes ALL credentials on the keypad and clears the list. Administrators only.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Keypad",
+          "description": "Only needed with several keypads."
+        },
+        "entity_id": {
+          "name": "Keypad entity",
+          "description": "Instead of Keypad: any entity of the keypad, e.g. its status sensor."
+        }
+      }
+    },
+    "cancel": {
+      "name": "Cancel",
+      "description": "Cancels a running enrollment or search and clears marked assignments. Administrators only.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Keypad",
+          "description": "Only needed with several keypads."
+        },
+        "entity_id": {
+          "name": "Keypad entity",
+          "description": "Instead of Keypad: any entity of the keypad, e.g. its status sensor."
         }
       }
     }
@@ -621,8 +706,7 @@
         "face": "Face",
         "palm_right": "Palm (right)",
         "palm_left": "Palm (left)",
-        "pin_custom": "PIN code (own)",
-        "pin_random": "PIN code (random)",
+        "pin_custom": "PIN code",
         "nfc_card": "NFC card"
       }
     },

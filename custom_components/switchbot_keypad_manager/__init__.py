@@ -14,13 +14,17 @@ import uuid
 
 import voluptuous as vol
 
+from homeassistant.components import bluetooth
+from homeassistant.components.bluetooth import BluetoothCallbackMatcher, BluetoothScanningMode
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import Event, HomeAssistant, ServiceCall, SupportsResponse, callback
 from homeassistant.exceptions import HomeAssistantError
 import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_send
-from homeassistant.helpers.event import async_call_later, async_track_time_interval
+from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.service import async_register_admin_service
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
@@ -32,10 +36,11 @@ from .keypad import DELETE as DELETE_CMD, SLOT_RANGE, Keypad, KeypadError, KeyRe
 from .texts import detail_text, texts
 
 _LOGGER = logging.getLogger(__name__)
-PLATFORMS = [Platform.BUTTON, Platform.NUMBER, Platform.SELECT, Platform.SENSOR, Platform.SWITCH, Platform.TEXT, Platform.TIME]
-LOCK_PLATFORMS = [Platform.BUTTON, Platform.NUMBER, Platform.SELECT, Platform.SWITCH, Platform.TIME]
+PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.EVENT, Platform.NUMBER, Platform.SELECT, Platform.SENSOR, Platform.SWITCH, Platform.TEXT, Platform.TIME]
+LOCK_PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.EVENT, Platform.NUMBER, Platform.SELECT, Platform.SWITCH, Platform.TIME]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 SIGNAL = f"{DOMAIN}_updated_{{}}"
+ADV_SIGNAL = f"{DOMAIN}_advertisement_{{}}"
 STORAGE_VERSION = 1
 
 
@@ -80,11 +85,11 @@ class Manager:
         self.fallback_mode = "all"                # bridge fallback without HA: all | allowed | none
         self._pushed_fallback: tuple | None = None
         self.unassigned: dict | None = None       # last unlock without a matching entry
+        self.pending: dict[str, dict] = {}        # kind -> {person, detail}: assign the next unknown unlock of kind
         self.status_key, self.status_args = "ready", {}
         self.choice = {"person": None, "what": "thumb_right", "validity": "permanent", "entry": NO_ENTRY}
-        self.new_pin = ""  # random PIN just created – shown once on the status sensor (not recorded)
-        self._pin_timer = None
-        self.pin = ""  # own PIN for the next enrollment – memory only, never saved or shown as a state
+        self.adv: dict = {}                       # keypad state from its Bluetooth advertisements (battery, alarms)
+        self.rssi: int | None = None
         self.running: asyncio.Task | None = None
         self.cancel_event = asyncio.Event()
 
@@ -114,12 +119,13 @@ class Manager:
         self.unknown_rule = data.get("unknown_rule", "always")
         self.approval = data.get("approval", False)
         self.fallback_mode = data.get("fallback_mode", "all")
+        self.pending = data.get("pending", {})
 
     async def save(self) -> None:
         await self.store.async_save({
             "entries": self.entries, "persons": self.extra_persons, "last": self.last, "counts": self.counts,
             "rules": self.rules, "unknown_rule": self.unknown_rule, "approval": self.approval,
-            "fallback_mode": self.fallback_mode})
+            "fallback_mode": self.fallback_mode, "pending": self.pending})
         self.notify_entities()
         self.push_fallback()
 
@@ -200,35 +206,28 @@ class Manager:
         except (KeyError, IndexError):
             return text
 
-    @callback
-    def show_pin(self, pin: str) -> None:
-        """Show a new random PIN once: status 'pin_show' + attribute 'pin' (not recorded), hidden after 10 min."""
-        self.new_pin = pin
-        self.status_key, self.status_args = "pin_show", {}
-        if self._pin_timer:
-            self._pin_timer()
-        self._pin_timer = async_call_later(self.hass, 600, lambda _now: self.hide_pin())
-        self.notify_entities()
-
-    @callback
-    def hide_pin(self) -> None:
-        if self._pin_timer:
-            self._pin_timer()
-            self._pin_timer = None
-        if self.new_pin:
-            self.new_pin = ""
-            if self.status_key == "pin_show":
-                self.status_key, self.status_args = "ready", {}
-            self.notify_entities()
-
     async def set_status(self, key: str, **args) -> None:
-        if self.new_pin:  # the next action ends the one-time display of a new PIN
-            self.new_pin = ""
-            if self._pin_timer:
-                self._pin_timer()
-                self._pin_timer = None
         self.status_key, self.status_args = key, args
         self.notify_entities()
+
+    # ---------- keypad state from Bluetooth advertisements ----------
+    @callback
+    def handle_advertisement(self, service_info, _change) -> None:
+        """Battery, charging, alarms, doorbell and radar from the keypad's advertisements (PySwitchbot parser,
+        no connection needed)."""
+        from switchbot import SwitchbotModel, parse_advertisement_data
+        try:
+            adv = parse_advertisement_data(service_info.device, service_info.advertisement,
+                                           SwitchbotModel(self.entry.data.get(CONF_MODEL, "Keypad Vision Pro")))
+        except ValueError:
+            adv = None
+        data = (adv.data or {}).get("data") if adv else None
+        if not data or "battery" not in data:
+            return
+        self.rssi = service_info.rssi
+        if data != self.adv:
+            self.adv = dict(data)
+            async_dispatcher_send(self.hass, ADV_SIGNAL.format(self.entry.entry_id))
 
     # ---------- unlock events from the keypad bridge ----------
     @callback
@@ -242,6 +241,17 @@ class Manager:
         except (TypeError, ValueError):
             return
         match = next((e for e in self.entries if e["kind"] == kind and e["slot"] == slot), None)
+        if match is None and kind in self.pending:
+            # an unknown credential was marked for a person ("Update entry" on "Unknown – …"): assign it now
+            want = self.pending.pop(kind)
+            was_selected = self.choice["entry"] in self.unknown_labels() or self.choice["entry"] == NO_ENTRY
+            match = self.new_entry(kind, slot, want["person"], want.get("detail", ""), source="assigned",
+                                   keypad_slot=keypad_slot_from_index(kind, slot))
+            self.entries.append(match)
+            if was_selected:
+                self.choice["entry"] = self.label(match)
+            self.status_key, self.status_args = "assigned", {"entry": self.label(match)}
+            self._notify(self.t["pending_done"].format(entry=self.label(match)))
         decision, rule = self.decide(match)
         allowed = decision == "open"
         # Always answer a bridge with approval: with "Approve unlocks" off every unlock is approved, otherwise the
@@ -370,8 +380,8 @@ class Manager:
         if what not in WHAT_OPTIONS:
             raise HomeAssistantError(f"Unknown option {what}")
         kind, detail = WHAT_OPTIONS[what]
-        if what == "pin_custom":
-            pin = (pin or self.pin or "").strip()
+        if kind == PIN:
+            pin = (pin or "").strip()
             if not re.fullmatch(r"\d{6,12}", pin):
                 raise HomeAssistantError(self.t["err_pin"])
         else:
@@ -394,9 +404,6 @@ class Manager:
             raise
         finally:
             self.running = None
-            if pin:
-                self.pin = ""
-                self.notify_entities()
         # an outdated entry for the same slot is replaced
         slot = reported_index(result["slot"])
         self.entries = [e for e in self.entries if not (e["kind"] == kind and e["slot"] == slot)]
@@ -407,13 +414,8 @@ class Manager:
             self.extra_persons.append(person)
         await self._refresh_counts()
         await self.set_status("done", entry=self.label(entry))
-        message = self.t["enrolled"].format(entry=self.label(entry))
-        if "pin" in result:
-            message += "\n\n" + self.t["pin_note"].format(pin=result["pin"])
-            if what == "pin_random":
-                self.show_pin(result["pin"])
-        self._notify(message)
-        return {"entry": entry, **({"pin": result["pin"]} if "pin" in result else {})}
+        self._notify(self.t["enrolled"].format(entry=self.label(entry)))
+        return {"entry": entry}
 
     # ---------- unknown credentials (on the keypad, not in the list) ----------
     def unknown_labels(self) -> dict[str, str]:
@@ -570,6 +572,23 @@ class Manager:
         await self.save()
         await self.set_status("updated", entry=self.label(entry))
 
+    async def assign_unknown(self, kind: str, person: str, what: str) -> None:
+        """Mark an unknown credential for a person: the keypad does not tell its slot, so it is assigned on its
+        next unlock (handle_bridge_event)."""
+        if not person:
+            raise HomeAssistantError(self.t["err_person"])
+        what_kind, detail = WHAT_OPTIONS.get(what, (kind, ""))
+        if what_kind != kind:   # the kind comes from the unknown entry; "What" only adds the finger / hand
+            detail = ""
+        if (self.unassigned and self.unassigned["kind"] == kind
+                and not any(e["kind"] == kind and e["slot"] == self.unassigned["slot"] for e in self.entries)):
+            return await self.assign_last(person, what)   # it just unlocked: assign right away
+        self.pending[kind] = {"person": person, "detail": detail}
+        if person not in self.persons():
+            self.extra_persons.append(person)
+        await self.save()
+        await self.set_status("pending", who=person, kind=self.t["kind"][kind])
+
     async def assign_last(self, person: str, what: str) -> None:
         """Assign the last unknown unlock (e.g. a credential from the SwitchBot app) – no keypad command."""
         if not self.unassigned:
@@ -617,6 +636,9 @@ class Manager:
 
     def cancel(self) -> None:
         self.cancel_event.set()
+        if self.pending:
+            self.pending = {}
+            self.hass.async_create_task(self.save())
 
     def _notify(self, message: str) -> None:
         self.hass.async_create_task(self.hass.services.async_call("persistent_notification", "create", {
@@ -624,8 +646,15 @@ class Manager:
 
 
 def _manager(hass: HomeAssistant, call: ServiceCall) -> Manager:
+    """Keypad of a service call. hass.data[DOMAIN] only holds keypads (Lock Ultra settings live in runtime_data)."""
     managers: dict[str, Manager] = hass.data.get(DOMAIN, {})
     entry_id = call.data.get("config_entry_id")
+    if not entry_id and (entity_id := call.data.get("entity_id")):
+        # any entity of the keypad, e.g. its status sensor - readable in dashboards
+        ent = er.async_get(hass).async_get(entity_id)
+        if ent is None or ent.platform != DOMAIN:
+            raise HomeAssistantError("Keypad not found")
+        entry_id = ent.config_entry_id
     if entry_id:
         if entry_id not in managers:
             raise HomeAssistantError("Keypad not found")
@@ -635,31 +664,83 @@ def _manager(hass: HomeAssistant, call: ServiceCall) -> Manager:
     return next(iter(managers.values()))
 
 
+def _selected(m: Manager, call: ServiceCall) -> tuple[str | None, str | None]:
+    """(entry id, unknown kind) of a call: the given entry_id, else the entry chosen in the "Entry" select."""
+    if entry_id := call.data.get("entry_id"):
+        return entry_id, None
+    choice = m.choice["entry"]
+    if kind := m.unknown_labels().get(choice):
+        return None, kind
+    entry_id = next((e["id"] for e in m.entries if m.label(e) == choice), None)
+    if choice == NO_ENTRY or entry_id is None:
+        raise HomeAssistantError(m.t["err_select"])
+    return entry_id, None
+
+
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    async def enroll(call: ServiceCall):
-        return await _manager(hass, call).enroll(call.data["person"], call.data["what"], call.data["validity"],
-                                                call.data.get("pin"))
+    """Services that change credentials on the keypad - administrators only. Fields left out are taken from the
+    selects of the keypad (person, what, validity, entry), so a dashboard can call them without data."""
 
-    async def update(call: ServiceCall) -> None:
-        await _manager(hass, call).update_entry(call.data["entry_id"], call.data.get("person"), call.data.get("what"))
+    def handler(work):
+        async def run(call: ServiceCall):
+            m = _manager(hass, call)
+            try:
+                return await work(m, call)
+            except HomeAssistantError as err:
+                if m.status_key != "error":   # also in the status sensor - a toast is easy to miss
+                    await m.set_status("error", err=str(err))
+                raise
+        return run
 
-    async def delete(call: ServiceCall) -> None:
-        await _manager(hass, call).delete(call.data["entry_id"])
+    async def enroll(m: Manager, call: ServiceCall):
+        return await m.enroll(call.data.get("person") or m.current_person(), call.data.get("what") or m.choice["what"],
+                              call.data.get("validity") or m.choice["validity"], call.data.get("pin"))
 
-    async def sync(call: ServiceCall) -> None:
-        await _manager(hass, call).sync()
+    async def update(m: Manager, call: ServiceCall) -> None:
+        entry_id, unknown = _selected(m, call)
+        person = call.data.get("person") or (None if call.data.get("entry_id") else m.current_person())
+        what = call.data.get("what") or (None if call.data.get("entry_id") else m.choice["what"])
+        if unknown:
+            await m.assign_unknown(unknown, person or m.current_person(), what or m.choice["what"])
+        else:
+            await m.update_entry(entry_id, person, what)
 
-    base = {vol.Optional("config_entry_id"): cv.string}
-    hass.services.async_register(DOMAIN, "enroll", enroll, schema=vol.Schema({
-        **base, vol.Required("person"): cv.string, vol.Required("what"): vol.All(lambda v: "palm_right" if v == "palm" else v, vol.In(list(WHAT_OPTIONS))),
-        vol.Optional("validity", default="permanent"): vol.In(VALIDITY_OPTIONS),
-        vol.Optional("pin"): vol.All(cv.string, vol.Match(r"^\d{6,12}$"))}),
-        supports_response=SupportsResponse.OPTIONAL)
-    hass.services.async_register(DOMAIN, "delete", delete, schema=vol.Schema({**base, vol.Required("entry_id"): cv.string}))
-    hass.services.async_register(DOMAIN, "sync", sync, schema=vol.Schema(base))
-    hass.services.async_register(DOMAIN, "update", update, schema=vol.Schema({
-        **base, vol.Required("entry_id"): cv.string, vol.Optional("person"): cv.string,
-        vol.Optional("what"): vol.All(lambda v: "palm_right" if v == "palm" else v, vol.In(list(WHAT_OPTIONS)))}))
+    async def delete(m: Manager, call: ServiceCall) -> None:
+        entry_id, unknown = _selected(m, call)
+        if unknown:
+            await m.delete_unknown(unknown)
+        else:
+            await m.delete(entry_id)
+
+    async def assign_last(m: Manager, call: ServiceCall) -> None:
+        await m.assign_last(call.data.get("person") or m.current_person(), call.data.get("what") or m.choice["what"])
+
+    async def sync(m: Manager, call: ServiceCall) -> None:
+        await m.sync()
+
+    async def delete_all(m: Manager, call: ServiceCall) -> None:
+        await m.delete_all()
+
+    async def cancel(m: Manager, call: ServiceCall) -> None:
+        m.cancel()
+        await m.set_status("cancel")
+
+    what = vol.All(lambda v: "palm_right" if v == "palm" else v, vol.In(list(WHAT_OPTIONS)))
+    base = {vol.Optional("config_entry_id"): cv.string, vol.Optional("entity_id"): cv.entity_id}
+    person = {vol.Optional("person"): cv.string, vol.Optional("what"): what}
+    services = {
+        "enroll": (enroll, {**person, vol.Optional("validity"): vol.In(VALIDITY_OPTIONS),
+                            vol.Optional("pin"): vol.All(cv.string, vol.Match(r"^\d{6,12}$"))}),
+        "update": (update, {vol.Optional("entry_id"): cv.string, **person}),
+        "delete": (delete, {vol.Optional("entry_id"): cv.string}),
+        "assign_last": (assign_last, person),
+        "sync": (sync, {}),
+        "delete_all": (delete_all, {}),
+        "cancel": (cancel, {}),
+    }
+    for name, (work, fields) in services.items():
+        async_register_admin_service(hass, DOMAIN, name, handler(work), vol.Schema({**base, **fields}),
+                                     SupportsResponse.OPTIONAL if name == "enroll" else SupportsResponse.NONE)
     return True
 
 
@@ -674,7 +755,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if entry.data.get("type") == "lock":
         from .lock import LockSettings
         ls = LockSettings(hass, entry)
-        hass.data.setdefault(DOMAIN, {})[entry.entry_id] = ls
+        entry.runtime_data = ls
         await hass.config_entries.async_forward_entry_setups(entry, LOCK_PLATFORMS)
         ls.start()
         return True
@@ -686,8 +767,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # deleting need the keypad address and key once -> re-authentication
         entry.async_start_reauth(hass)
     await manager.load()
+    entry.runtime_data = manager
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = manager
     entry.async_on_unload(hass.bus.async_listen(BRIDGE_UNLOCK_EVENT, manager.handle_bridge_event))
+    if address := entry.data.get(CONF_ADDRESS):
+        entry.async_on_unload(bluetooth.async_register_callback(
+            hass, manager.handle_advertisement, BluetoothCallbackMatcher(address=address, connectable=False),
+            BluetoothScanningMode.PASSIVE))
+        if (last := bluetooth.async_last_service_info(hass, address, connectable=False)) is not None:
+            manager.handle_advertisement(last, None)
 
     @callback
     def _service_registered(event: Event) -> None:
@@ -713,7 +801,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if entry.data.get("type") == "lock":
         unloaded = await hass.config_entries.async_unload_platforms(entry, LOCK_PLATFORMS)
         if unloaded:
-            hass.data[DOMAIN].pop(entry.entry_id).stop()
+            entry.runtime_data.stop()
         return unloaded
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
@@ -723,4 +811,4 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unloaded
 
 
-__all__ = ["Manager", "RULE_OPTIONS", "SIGNAL"]
+__all__ = ["ADV_SIGNAL", "Manager", "RULE_OPTIONS", "SIGNAL"]

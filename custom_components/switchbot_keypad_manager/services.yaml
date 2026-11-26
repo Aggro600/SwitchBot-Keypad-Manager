@@ -4,18 +4,19 @@ enroll:
       selector:
         config_entry:
           integration: switchbot_keypad_manager
+    entity_id:
+      selector:
+        entity:
+          integration: switchbot_keypad_manager
     person:
-      required: true
       selector:
         text:
     what:
-      required: true
       selector:
         select:
           translation_key: what
-          options: ["thumb_right", "index_right", "middle_right", "ring_right", "little_right", "thumb_left", "index_left", "middle_left", "ring_left", "little_left", "face", "palm_right", "palm_left", "pin_custom", "pin_random", "nfc_card"]
+          options: ["thumb_right", "index_right", "middle_right", "ring_right", "little_right", "thumb_left", "index_left", "middle_left", "ring_left", "little_left", "face", "palm_right", "palm_left", "pin_custom", "nfc_card"]
     validity:
-      default: permanent
       selector:
         select:
           translation_key: validity
@@ -24,30 +25,17 @@ enroll:
       selector:
         text:
           type: password
-delete:
-  fields:
-    config_entry_id:
-      selector:
-        config_entry:
-          integration: switchbot_keypad_manager
-    entry_id:
-      required: true
-      selector:
-        text:
-sync:
-  fields:
-    config_entry_id:
-      selector:
-        config_entry:
-          integration: switchbot_keypad_manager
 update:
   fields:
     config_entry_id:
       selector:
         config_entry:
           integration: switchbot_keypad_manager
+    entity_id:
+      selector:
+        entity:
+          integration: switchbot_keypad_manager
     entry_id:
-      required: true
       selector:
         text:
     person:
@@ -57,4 +45,65 @@ update:
       selector:
         select:
           translation_key: what
-          options: ["thumb_right", "index_right", "middle_right", "ring_right", "little_right", "thumb_left", "index_left", "middle_left", "ring_left", "little_left", "face", "palm_right", "palm_left", "pin_custom", "pin_random", "nfc_card"]
+          options: ["thumb_right", "index_right", "middle_right", "ring_right", "little_right", "thumb_left", "index_left", "middle_left", "ring_left", "little_left", "face", "palm_right", "palm_left", "pin_custom", "nfc_card"]
+delete:
+  fields:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: switchbot_keypad_manager
+    entity_id:
+      selector:
+        entity:
+          integration: switchbot_keypad_manager
+    entry_id:
+      selector:
+        text:
+assign_last:
+  fields:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: switchbot_keypad_manager
+    entity_id:
+      selector:
+        entity:
+          integration: switchbot_keypad_manager
+    person:
+      selector:
+        text:
+    what:
+      selector:
+        select:
+          translation_key: what
+          options: ["thumb_right", "index_right", "middle_right", "ring_right", "little_right", "thumb_left", "index_left", "middle_left", "ring_left", "little_left", "face", "palm_right", "palm_left", "pin_custom", "nfc_card"]
+sync:
+  fields:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: switchbot_keypad_manager
+    entity_id:
+      selector:
+        entity:
+          integration: switchbot_keypad_manager
+delete_all:
+  fields:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: switchbot_keypad_manager
+    entity_id:
+      selector:
+        entity:
+          integration: switchbot_keypad_manager
+cancel:
+  fields:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: switchbot_keypad_manager
+    entity_id:
+      selector:
+        entity:
+          integration: switchbot_keypad_manager

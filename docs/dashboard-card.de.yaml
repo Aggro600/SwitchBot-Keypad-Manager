@@ -30,35 +30,82 @@ cards:
       entity: select.keypad_haustur_was
       state: pin_custom
     row:
-      entity: text.keypad_haustur_pin_code_6_12_ziffern
-      name: Eigener PIN (6–12 Ziffern)
+      type: button
+      name: 'PIN-Code: Aktion „Zugang anlernen“ öffnen (Feld PIN)'
+      icon: mdi:dialpad
+      action_name: Öffnen
+      tap_action:
+        action: navigate
+        navigation_path: /config/tools/action?service=switchbot_keypad_manager.enroll
   - entity: select.keypad_haustur_gultigkeit
     name: Gültigkeit
-  - type: buttons
-    entities:
-    - entity: button.keypad_haustur_anlernen_starten
-      name: Anlernen
-      icon: mdi:account-plus
-    - entity: button.keypad_haustur_eintrag_andern
-      name: Ändern
-      icon: mdi:account-edit
-    - entity: button.keypad_haustur_eintrag_loschen
-      name: Löschen
-      icon: mdi:account-remove
-    - entity: button.keypad_haustur_alles_loschen_keypad_liste
-      name: Alles (2×)
-      icon: mdi:delete-alert
-  - type: buttons
-    entities:
-    - entity: button.keypad_haustur_letzte_entsperrung_zuordnen
-      name: Zuordnen
-      icon: mdi:account-arrow-left
-    - entity: button.keypad_haustur_mit_keypad_abgleichen
-      name: Abgleichen
-      icon: mdi:sync
-    - entity: button.keypad_haustur_abbrechen
-      name: Abbrechen
-      icon: mdi:cancel
+  - type: button
+    name: Anlernen
+    icon: mdi:account-plus
+    action_name: Los
+    tap_action:
+      action: perform-action
+      perform_action: switchbot_keypad_manager.enroll
+      data:
+        entity_id: sensor.keypad_haustur_status
+  - type: button
+    name: Eintrag ändern
+    icon: mdi:account-edit
+    action_name: Los
+    tap_action:
+      action: perform-action
+      perform_action: switchbot_keypad_manager.update
+      data:
+        entity_id: sensor.keypad_haustur_status
+  - type: button
+    name: Eintrag löschen
+    icon: mdi:account-remove
+    action_name: Los
+    tap_action:
+      action: perform-action
+      perform_action: switchbot_keypad_manager.delete
+      data:
+        entity_id: sensor.keypad_haustur_status
+      confirmation:
+        text: Eintrag wirklich löschen (auch im Keypad)?
+  - type: button
+    name: Alles löschen (Keypad + Liste)
+    icon: mdi:delete-alert
+    action_name: Los
+    tap_action:
+      action: perform-action
+      perform_action: switchbot_keypad_manager.delete_all
+      data:
+        entity_id: sensor.keypad_haustur_status
+      confirmation:
+        text: ALLE Zugänge im Keypad und in der Liste löschen?
+  - type: button
+    name: Letzte Entsperrung zuordnen
+    icon: mdi:account-arrow-left
+    action_name: Los
+    tap_action:
+      action: perform-action
+      perform_action: switchbot_keypad_manager.assign_last
+      data:
+        entity_id: sensor.keypad_haustur_status
+  - type: button
+    name: Mit Keypad abgleichen
+    icon: mdi:sync
+    action_name: Los
+    tap_action:
+      action: perform-action
+      perform_action: switchbot_keypad_manager.sync
+      data:
+        entity_id: sensor.keypad_haustur_status
+  - type: button
+    name: Abbrechen
+    icon: mdi:cancel
+    action_name: Los
+    tap_action:
+      action: perform-action
+      perform_action: switchbot_keypad_manager.cancel
+      data:
+        entity_id: sensor.keypad_haustur_status
   - type: divider
   - entity: sensor.keypad_haustur_status
     name: Status
@@ -161,9 +208,9 @@ cards:
     \ öffnet selbst' if fm=='all' else 'Tür bleibt zu' }}\n{% else %}Wähle oben einen **Eintrag** – hier steht dann in Klartext, was bei diesem Finger/Gesicht/… passiert.{% endif %}"
 - type: markdown
   content: |-
-    **Neu:** Person + Was (+ Gültigkeit) → *Anlernen* → ans Keypad.
+    **Neu:** Person + Was (+ Gültigkeit) → *Anlernen* → ans Keypad (PIN-Code: Knopf öffnet die Aktion mit dem Feld PIN).
     **Ändern:** Eintrag wählen (Person/Was werden vorbelegt) → umstellen → *Ändern*.
-    **Löschen:** Eintrag wählen → *Löschen* – immer im Keypad *und* in der Liste, auch *Unbekannt – …* (Home Assistant sucht den Platz selbst). *Alles (2×)* = zweimal in 15 s.
+    **Löschen:** Eintrag wählen → *Löschen* – immer im Keypad *und* in der Liste, auch *Unbekannt – …* (Home Assistant sucht den Platz selbst). *Alles löschen* fragt vorher nach. Alle Knöpfe sind Admin-Aktionen.
     **Ohne Namen:** damit entsperren → Person/Was wählen → *Zuordnen*.
 
     **Welche Regel gilt?** (nur bei *Entsperren freigeben* = an; aus = die Bridge öffnet immer sofort)

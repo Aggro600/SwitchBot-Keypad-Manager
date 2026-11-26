@@ -12,9 +12,9 @@ from .entity import KeypadEntity
 async def async_setup_entry(hass, entry, async_add_entities):
     if entry.data.get("type") == "lock":
         from .lock import lock_entities
-        async_add_entities(lock_entities("time", hass.data[DOMAIN][entry.entry_id]))
+        async_add_entities(lock_entities("time", entry.runtime_data))
         return
-    manager = hass.data[DOMAIN][entry.entry_id]
+    manager = entry.runtime_data
     from .keypad_settings import setting_entities
     async_add_entities(setting_entities("time", manager))
     async_add_entities([WindowTime(manager, which, number) for number in range(1, WINDOWS + 1)

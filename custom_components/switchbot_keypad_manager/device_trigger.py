@@ -36,8 +36,14 @@ def _config_entry_id(hass: HomeAssistant, device_id: str) -> str | None:
     return next((ident for dom, ident in device.identifiers if dom == DOMAIN), None)
 
 
+def _is_keypad(hass: HomeAssistant, entry_id: str | None) -> bool:
+    """Lock Ultra settings entries (type "lock") have no credentials and no unlock events."""
+    entry = hass.config_entries.async_get_entry(entry_id) if entry_id else None
+    return entry is not None and entry.data.get("type") != "lock"
+
+
 async def async_get_triggers(hass: HomeAssistant, device_id: str) -> list[dict]:
-    if _config_entry_id(hass, device_id) is None:
+    if not _is_keypad(hass, _config_entry_id(hass, device_id)):
         return []
     return [{CONF_PLATFORM: "device", CONF_DOMAIN: DOMAIN, CONF_DEVICE_ID: device_id, CONF_TYPE: t}
             for t in TRIGGER_TYPES]

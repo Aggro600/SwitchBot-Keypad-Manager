@@ -28,3 +28,16 @@ class KeypadEntity(Entity):
     @callback
     def _updated(self) -> None:
         self.async_write_ha_state()
+
+
+class AdvEntity(KeypadEntity):
+    """Entity fed by the keypad's Bluetooth advertisements; unavailable until the first one arrived."""
+
+    @property
+    def available(self) -> bool:
+        return bool(self.manager.adv)
+
+    async def async_added_to_hass(self) -> None:
+        from . import ADV_SIGNAL
+        self.async_on_remove(async_dispatcher_connect(
+            self.hass, ADV_SIGNAL.format(self.manager.entry.entry_id), self._updated))

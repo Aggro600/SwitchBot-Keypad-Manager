@@ -9,12 +9,15 @@ nicht erreichbar ist.
 
 ## Was es kann
 
-- **Anlernen am Keypad aus Home Assistant:** Person und *Was* wählen (10 Finger, Gesicht, Handfläche rechts/links, eigener oder zufälliger PIN,
-  NFC-Karte), *Anlernen starten*, ans Keypad gehen. Platz und Name werden automatisch gespeichert.
+- **Anlernen am Keypad aus Home Assistant:** Person und *Was* wählen (10 Finger, Gesicht, Handfläche rechts/links, PIN-Code,
+  NFC-Karte), Aktion *Zugang anlernen* ausführen, ans Keypad gehen. Platz und Name werden automatisch gespeichert.
 - **Löschen – immer im Keypad *und* in der Liste:** auch Zugänge, die nicht hier angelernt wurden. Unbekannte stehen in
   der Auswahl als *Unbekannt – Gesicht 1*, *Unbekannt – PIN-Code 1* …; die Integration sucht den Platz im Keypad
-  selbst (das Keypad meldet beim Löschen die Restanzahl). **Alles löschen** (zweimal drücken) leert Keypad und Liste.
-- **Ändern:** falsche Person oder falscher Finger? Eintrag wählen (Person und Finger werden vorbelegt), umstellen, *Eintrag ändern*.
+  selbst (das Keypad meldet beim Löschen die Restanzahl). **Alles löschen** leert Keypad und Liste.
+- **Ändern:** falsche Person oder falscher Finger? Eintrag wählen (Person und Finger werden vorbelegt), umstellen, *Zugang ändern*.
+- **Nur für Administratoren:** alles, was Zugänge im Keypad ändert, sind Admin-Aktionen (anlernen, ändern, löschen,
+  alles löschen, zuordnen, abgleichen, abbrechen). Ein Gäste-Dashboard kommt an die Tür nicht heran. PIN-Codes gehen nur
+  an die Aktion und werden nirgends gespeichert, angezeigt, protokolliert oder zurückgegeben.
 - **Befristung** für Finger, PIN und Karte (heute, 24 Stunden, 1 Woche, 1 Monat) und einmalige PINs.
 - **Wer hat wie entsperrt:** „Anna (Daumen rechts) per Fingerabdruck · 08:15“ als Sensor, im Logbuch und als Ereignis
   für Automationen.
@@ -27,6 +30,8 @@ nicht erreichbar ist.
 - **Abgleich:** vergleicht die Anzahl im Keypad mit der Liste und zeigt Zugänge ohne Namen (z. B. aus der
   SwitchBot-App). Zuordnen: einmal damit entsperren, *Letzte Entsperrung zuordnen*. Für unbekannte Zugänge gibt es
   eine eigene Regel (auch *Nur Automation*) – z. B. „jedes Entsperren startet nur mein Tür-Skript“.
+- **Keypad-Zustand:** Batterie, Ladestatus, Aussperr-/Manipulations-/Notfallalarm, niedrige/hohe Temperatur,
+  Türklingel-Ereignis und Radar-Werte – aus den Bluetooth-Werbedaten des Keypads (ohne Verbindung, ohne SwitchBot-Integration).
 - **Keypad-Einstellungen:** Erkennungsauslöser und -empfindlichkeit, bis zu 3 Zeitpläne (an/aus, Tage, von/bis), Deaktivierungsintervall, Fast Unlock,
   Lautstärke Sprachansage und Signaltöne, Sprache der Ansage, Demontagealarm, Tastenton, Hintergrundbeleuchtung und Helligkeit, Verriegelungstaste,
   Keypad deaktivieren – wie in der SwitchBot-App.
@@ -36,7 +41,7 @@ nicht erreichbar ist.
   Auto-Entriegeln). Die Schlosskraft fehlt absichtlich (danach müsste neu kalibriert werden). Gelesen wird beim Start,
   alle 12 h, nach jeder Änderung und per Knopf; alles an echter Hardware geprüft. Fertige Ansicht zum Kopieren:
   [docs/settings-view.de.yaml](docs/settings-view.de.yaml) (Keypad-Einstellungen mit Zeitplänen + Schloss-Einstellungen).
-- **Nur Auswahl:** alles über Auswahllisten und Knöpfe; Freitext nur optional (neue Person).
+- **Nur Auswahl:** alles über Auswahllisten und Aktions-Knöpfe; Freitext nur optional (neue Person).
 - Mehrere Keypads: Integration je Keypad einmal hinzufügen.
 
 ## Voraussetzungen
@@ -51,8 +56,10 @@ nicht erreichbar ist.
 
 ## Einrichten
 
-1. HACS → ⋮ → *Benutzerdefinierte Repositories* → `https://github.com/Aggro600/SwitchBot-Keypad-Manager` (Integration).
-2. **SwitchBot Keypad Manager** installieren, Home Assistant neu starten.
+1. HACS → nach **SwitchBot Keypad Manager** suchen → *Herunterladen*.
+   *Alternativ* (solange es noch nicht in HACS gelistet ist): HACS → ⋮ → *Benutzerdefinierte Repositories* →
+   `https://github.com/Aggro600/SwitchBot-Keypad-Manager` (Integration), dann herunterladen.
+2. Home Assistant neu starten.
 3. *Einstellungen → Geräte & Dienste → Integration hinzufügen → SwitchBot Keypad Manager*: Keypad (aus der
    Bluetooth-Liste – Keypad antippen, damit es sendet), Keypad-Bridge (ESPHome-Gerätename) und Personen wählen,
    danach den Schlüssel *mit SwitchBot-Konto* holen oder von Hand eingeben.
@@ -63,11 +70,14 @@ Die Bridge-Konfiguration (Ereignis mit `bridge`, Freigabe mit `approval:` und de
 
 ## Gut zu wissen
 
-- **PIN-Codes:** *PIN-Code (eigener)* nimmt die 6–12 Ziffern aus dem Feld *PIN-Code (6–12 Ziffern)* (nur als
-  Sternchen sichtbar, nur im Arbeitsspeicher, nach dem Anlernen gelöscht). *PIN-Code (zufällig)* erzeugt 6 Ziffern und
-  zeigt sie **einmal** an: im Statusfeld (`state_content: [state, pin]` an der Status-Kachel), als Attribut `pin` des
-  Status-Sensors und als Meldung – bis *Neuen PIN notiert – ausblenden*, zur nächsten Aktion oder nach 10 Minuten.
-  PINs werden **nirgends gespeichert** und nicht im Verlauf aufgezeichnet.
+- **Aktionen statt Knöpfe:** `switchbot_keypad_manager.enroll`, `update`, `delete`, `assign_last`, `sync`,
+  `delete_all`, `cancel` – nur für Administratoren. Keypad über `config_entry_id` oder `entity_id` (eine beliebige
+  Entität des Keypads, z. B. `sensor.keypad_haustur_status`); weggelassene Felder kommen aus den Auswahlen
+  (*Person*, *Was*, *Gültigkeit*, *Eintrag*). Im Dashboard: Knopf mit `tap_action: perform-action`
+  (fertige Karte: [docs/dashboard-card.de.yaml](docs/dashboard-card.de.yaml)).
+- **PIN-Codes:** Aktion *Zugang anlernen* (Entwicklerwerkzeuge → Aktionen, oder ein Dashboard-Knopf auf
+  `/config/tools/action?service=switchbot_keypad_manager.enroll`) mit *Was* = *PIN-Code* und den 6–12 Ziffern im Feld
+  *PIN*. Der PIN geht direkt ans Keypad und wird **nirgends gespeichert**, angezeigt oder zurückgegeben.
 - Was hier angelernt wird, kennt die **SwitchBot-App** nicht; die Namen liegen in Home Assistant.
 - **An echter Hardware geprüft** (Keypad Vision Pro): Anlernen, Entsperr-Meldung und Löschen für PIN, NFC-Karte,
   Finger, Gesicht und Handfläche rechts/links – jeweils mit der Zählung im Keypad.

@@ -11,7 +11,6 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable
 import logging
-import secrets
 import time
 
 from homeassistant.core import HomeAssistant
@@ -213,7 +212,7 @@ class Keypad:
     async def _enroll(self, kind: str, *, valid_from: float | None = None, valid_until: float | None = None,
                      once: bool = False, status: Callable[[str], Awaitable[None] | None] | None = None,
                      cancel: asyncio.Event | None = None, pin: str | None = None) -> dict:
-        """Enroll a new credential. Returns {'slot': n, 'pin': '…' (PIN only)}.
+        """Enroll a new credential. Returns {'slot': n}.
 
         `status` receives short keys: finger, face, palm, card, pin_done.
         """
@@ -293,8 +292,9 @@ class Keypad:
         raise KeypadError(f"Unknown credential kind {kind}")
 
     async def _pin(self, limited, once, valid_from, valid_until, report, pin: str | None = None) -> dict:
-        """PIN with 6-12 digits; a random 6-digit one when none is given."""
-        pin = pin or "".join(str(secrets.randbelow(10)) for _ in range(6))
+        """PIN with 6-12 digits, given by the administrator (never generated, never returned)."""
+        if not pin:
+            raise KeypadError("PIN missing")
         pin_type = 2 if once else (1 if limited else 0)
         payload = bytes([0xFF, pin_type, len(pin)]) + bytes(int(c) for c in pin)
         chunks = [payload[i:i + 11] for i in range(0, len(payload), 11)]
@@ -307,7 +307,7 @@ class Keypad:
         if limited:
             await self.command(f"570F520203{_h(slot)}{_ts(valid_from)}{_ts(valid_until)}")
         await report("pin_done")
-        return {"slot": slot, "pin": pin}
+        return {"slot": slot}
 
     async def _verify(self, kind: str, slot: int, before: int | None) -> None:
         """Make sure the keypad really stored the credential (its count went up)."""

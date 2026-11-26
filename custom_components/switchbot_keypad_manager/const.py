@@ -23,7 +23,7 @@ FINGERS = [f"{finger}_{side}" for side in ("right", "left")
            for finger in ("thumb", "index", "middle", "ring", "little")]
 # Option of the "what" select -> (kind, detail)
 WHAT_OPTIONS = {**{f: (FINGERPRINT, f) for f in FINGERS},
-                "face": (FACE, ""), "palm_right": (PALM, "palm_right"), "palm_left": (PALM, "palm_left"), "pin_custom": (PIN, ""), "pin_random": (PIN, ""), "nfc_card": (NFC, "")}
+                "face": (FACE, ""), "palm_right": (PALM, "palm_right"), "palm_left": (PALM, "palm_left"), "pin_custom": (PIN, ""), "nfc_card": (NFC, "")}
 
 VALIDITY_OPTIONS = ["permanent", "today", "24h", "1w", "1m", "once"]
 RULE_OPTIONS = ["always", "blocked", "event_only", "daytime", "weekdays", "someone_home"]

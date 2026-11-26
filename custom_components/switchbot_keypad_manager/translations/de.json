@@ -89,6 +89,21 @@
       },
       "status": {
         "name": "Status"
+      },
+      "battery": {
+        "name": "Batterie"
+      },
+      "rssi": {
+        "name": "Bluetooth-Signal"
+      },
+      "radar_triggered_level": {
+        "name": "Radar Auslösepegel"
+      },
+      "radar_triggered_distance": {
+        "name": "Radar Auslöseentfernung"
+      },
+      "pir_triggered_level": {
+        "name": "Bewegungsmelder Auslösepegel"
       }
     },
     "select": {
@@ -111,8 +126,7 @@
           "face": "Gesicht",
           "palm_right": "Handfläche rechts",
           "palm_left": "Handfläche links",
-          "pin_custom": "PIN-Code (eigener)",
-          "pin_random": "PIN-Code (zufällig)",
+          "pin_custom": "PIN-Code",
           "nfc_card": "NFC-Karte"
         }
       },
@@ -371,35 +385,11 @@
       }
     },
     "button": {
-      "enroll": {
-        "name": "Anlernen starten"
-      },
-      "delete": {
-        "name": "Eintrag löschen"
-      },
-      "assign_last": {
-        "name": "Letzte Entsperrung zuordnen"
-      },
-      "sync": {
-        "name": "Mit Keypad abgleichen"
-      },
-      "cancel": {
-        "name": "Abbrechen"
-      },
-      "update": {
-        "name": "Eintrag ändern"
-      },
-      "delete_all": {
-        "name": "Alles löschen (Keypad + Liste)"
-      },
       "refresh": {
         "name": "Einstellungen lesen"
       },
       "kp_refresh": {
         "name": "Keypad-Einstellungen lesen"
-      },
-      "pin_hide": {
-        "name": "Neuen PIN notiert – ausblenden"
       }
     },
     "switch": {
@@ -467,9 +457,6 @@
     "text": {
       "new_person": {
         "name": "Neue Person (optional)"
-      },
-      "pin_code": {
-        "name": "PIN-Code (6–12 Ziffern)"
       }
     },
     "time": {
@@ -529,78 +516,176 @@
       "kp_backlight_level": {
         "name": "Helligkeit"
       }
+    },
+    "binary_sensor": {
+      "battery_charging": {
+        "name": "Ladestatus"
+      },
+      "lockout_alarm": {
+        "name": "Aussperr-Alarm"
+      },
+      "tamper_alarm": {
+        "name": "Manipulation"
+      },
+      "duress_alarm": {
+        "name": "Notfallalarm"
+      },
+      "low_temperature": {
+        "name": "Niedrige Temperatur"
+      },
+      "high_temperature": {
+        "name": "Hohe Temperatur"
+      }
+    },
+    "event": {
+      "doorbell": {
+        "name": "Türklingel",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "ring": "Klingeln"
+            }
+          }
+        }
+      }
     }
   },
   "services": {
     "enroll": {
       "name": "Zugang anlernen",
-      "description": "Startet das Anlernen am Keypad (Finger auflegen, in die Kamera schauen, Handfläche zeigen, Karte halten) oder legt einen zufälligen PIN an.",
+      "description": "Startet das Anlernen am Keypad (Finger auflegen, in die Kamera schauen, Handfläche zeigen, Karte halten) oder legt einen PIN-Code an. Nur für Administratoren. Leere Felder nimmt die Aktion aus den Auswahlen des Keypads (Person, Was, Gültigkeit).",
       "fields": {
         "config_entry_id": {
           "name": "Keypad",
           "description": "Nur bei mehreren Keypads nötig."
+        },
+        "entity_id": {
+          "name": "Keypad-Entität",
+          "description": "Statt Keypad: eine beliebige Entität des Keypads, z. B. der Status-Sensor."
         },
         "person": {
           "name": "Person",
-          "description": "Name der Person."
+          "description": "Name der Person (leer = Auswahl „Person“)."
         },
         "what": {
           "name": "Was",
-          "description": "Finger, Gesicht, Handfläche, PIN oder NFC-Karte."
+          "description": "Finger, Gesicht, Handfläche, PIN-Code oder NFC-Karte (leer = Auswahl „Was“)."
         },
         "validity": {
           "name": "Gültigkeit",
-          "description": "Befristung (PIN, Finger, NFC)."
+          "description": "Befristung (PIN, Finger, NFC; leer = Auswahl „Gültigkeit“)."
         },
         "pin": {
           "name": "PIN",
-          "description": "Eigener PIN (6–12 Ziffern) für „PIN-Code (eigener)“."
-        }
-      }
-    },
-    "delete": {
-      "name": "Zugang löschen",
-      "description": "Löscht einen Zugang im Keypad und in der Liste.",
-      "fields": {
-        "config_entry_id": {
-          "name": "Keypad",
-          "description": "Nur bei mehreren Keypads nötig."
-        },
-        "entry_id": {
-          "name": "Eintrag",
-          "description": "ID aus dem Attribut 'entries' des Sensors Zugänge."
-        }
-      }
-    },
-    "sync": {
-      "name": "Mit Keypad abgleichen",
-      "description": "Liest die Anzahl der Zugänge im Keypad.",
-      "fields": {
-        "config_entry_id": {
-          "name": "Keypad",
-          "description": "Nur bei mehreren Keypads nötig."
+          "description": "PIN-Code mit 6–12 Ziffern (nur bei „PIN-Code“). Wird nirgends gespeichert oder angezeigt."
         }
       }
     },
     "update": {
       "name": "Zugang ändern",
-      "description": "Ändert Person und/oder Finger eines Eintrags (das Keypad selbst speichert keine Namen).",
+      "description": "Ändert Person und/oder Finger eines Eintrags (das Keypad selbst speichert keine Namen). Ohne Eintrag gilt die Auswahl „Eintrag“; bei „Unbekannt – …“ wird die Person vorgemerkt und beim nächsten Entsperren zugeordnet. Nur für Administratoren.",
       "fields": {
         "config_entry_id": {
           "name": "Keypad",
           "description": "Nur bei mehreren Keypads nötig."
         },
+        "entity_id": {
+          "name": "Keypad-Entität",
+          "description": "Statt Keypad: eine beliebige Entität des Keypads, z. B. der Status-Sensor."
+        },
         "entry_id": {
           "name": "Eintrag",
-          "description": "ID aus dem Attribut 'entries' des Sensors Zugänge."
+          "description": "ID aus dem Attribut „entries“ des Sensors Zugänge (leer = Auswahl „Eintrag“)."
         },
         "person": {
           "name": "Person",
-          "description": "Neue Person (optional)."
+          "description": "Name der Person (leer = Auswahl „Person“)."
         },
         "what": {
           "name": "Was",
-          "description": "Neuer Finger (optional, die Art bleibt gleich)."
+          "description": "Finger, Gesicht, Handfläche, PIN-Code oder NFC-Karte (leer = Auswahl „Was“)."
+        }
+      }
+    },
+    "delete": {
+      "name": "Zugang löschen",
+      "description": "Löscht einen Zugang im Keypad und in der Liste. Ohne Eintrag gilt die Auswahl „Eintrag“ (auch „Unbekannt – …“). Nur für Administratoren.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Keypad",
+          "description": "Nur bei mehreren Keypads nötig."
+        },
+        "entity_id": {
+          "name": "Keypad-Entität",
+          "description": "Statt Keypad: eine beliebige Entität des Keypads, z. B. der Status-Sensor."
+        },
+        "entry_id": {
+          "name": "Eintrag",
+          "description": "ID aus dem Attribut „entries“ des Sensors Zugänge (leer = Auswahl „Eintrag“)."
+        }
+      }
+    },
+    "assign_last": {
+      "name": "Letzte Entsperrung zuordnen",
+      "description": "Ordnet die letzte unbekannte Entsperrung einer Person zu (nur in der Liste). Nur für Administratoren.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Keypad",
+          "description": "Nur bei mehreren Keypads nötig."
+        },
+        "entity_id": {
+          "name": "Keypad-Entität",
+          "description": "Statt Keypad: eine beliebige Entität des Keypads, z. B. der Status-Sensor."
+        },
+        "person": {
+          "name": "Person",
+          "description": "Name der Person (leer = Auswahl „Person“)."
+        },
+        "what": {
+          "name": "Was",
+          "description": "Finger, Gesicht, Handfläche, PIN-Code oder NFC-Karte (leer = Auswahl „Was“)."
+        }
+      }
+    },
+    "sync": {
+      "name": "Mit Keypad abgleichen",
+      "description": "Liest die Anzahl der Zugänge im Keypad. Nur für Administratoren.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Keypad",
+          "description": "Nur bei mehreren Keypads nötig."
+        },
+        "entity_id": {
+          "name": "Keypad-Entität",
+          "description": "Statt Keypad: eine beliebige Entität des Keypads, z. B. der Status-Sensor."
+        }
+      }
+    },
+    "delete_all": {
+      "name": "Alles löschen (Keypad + Liste)",
+      "description": "Löscht ALLE Zugänge im Keypad und leert die Liste. Nur für Administratoren.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Keypad",
+          "description": "Nur bei mehreren Keypads nötig."
+        },
+        "entity_id": {
+          "name": "Keypad-Entität",
+          "description": "Statt Keypad: eine beliebige Entität des Keypads, z. B. der Status-Sensor."
+        }
+      }
+    },
+    "cancel": {
+      "name": "Abbrechen",
+      "description": "Bricht ein laufendes Anlernen oder Suchen ab und löscht Vormerkungen. Nur für Administratoren.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Keypad",
+          "description": "Nur bei mehreren Keypads nötig."
+        },
+        "entity_id": {
+          "name": "Keypad-Entität",
+          "description": "Statt Keypad: eine beliebige Entität des Keypads, z. B. der Status-Sensor."
         }
       }
     }
@@ -621,8 +706,7 @@
         "face": "Gesicht",
         "palm_right": "Handfläche rechts",
         "palm_left": "Handfläche links",
-        "pin_custom": "PIN-Code (eigener)",
-        "pin_random": "PIN-Code (zufällig)",
+        "pin_custom": "PIN-Code",
         "nfc_card": "NFC-Karte"
       }
     },

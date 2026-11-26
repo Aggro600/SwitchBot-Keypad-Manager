@@ -13,11 +13,14 @@ fingerprints, faces, palms, PIN codes and NFC cards, see *who* unlocked *how*, a
 ## Features
 
 - **Enroll on the keypad from Home Assistant** – pick a person and what to enroll (10 fingers, face, left/right palm,
-  your own or a random PIN, NFC card), press *Start enrollment*, go to the keypad. Slot and name are stored automatically.
+  PIN code, NFC card), run *Enroll credential*, go to the keypad. Slot and name are stored automatically.
 - **Delete – always on the keypad *and* in the list**, also credentials that were not enrolled here. Unknown ones
   appear in the selection as *Unknown – Face 1*, *Unknown – PIN code 1* …; the integration finds the keypad slot itself
-  (the keypad reports the remaining count on delete). **Delete everything** (press twice) clears keypad and list.
-- **Edit** an entry – wrong person or wrong finger? Select the entry (person and finger are pre-filled), change them, press *Update entry*.
+  (the keypad reports the remaining count on delete). **Delete everything** clears keypad and list.
+- **Edit** an entry – wrong person or wrong finger? Select the entry (person and finger are pre-filled), change them, run *Update credential*.
+- **Administrators only** – everything that changes credentials on the keypad is an admin-only action
+  (enroll, update, delete, delete everything, assign, sync, cancel). A guest dashboard cannot touch the door.
+  PIN codes are only passed to the action and are never stored, shown, logged or returned.
 - **Time limits** for fingerprints, PIN codes and NFC cards (today, 24 h, 1 week, 1 month) and one-time PINs.
 - **Who unlocked how** – "Anna (right thumb) via Fingerprint · 08:15" as a sensor, a logbook entry and an event
   for your automations.
@@ -31,13 +34,15 @@ fingerprints, faces, palms, PIN codes and NFC cards, see *who* unlocked *how*, a
 - **Sync** – compares the counts stored on the keypad with the list and shows credentials without a name
   (e.g. created in the SwitchBot app). Assign them by unlocking once and pressing *Assign last unlock*. Unknown
   credentials have their own rule (also *automation only*) – e.g. "every unlock only runs my door script".
+- **Keypad status** – battery, charging, lockout / tamper / duress alarm, low/high temperature, doorbell event and
+  radar trigger values, read from the keypad's Bluetooth advertisements (no connection, no SwitchBot integration needed).
 - **Keypad settings** – detection trigger and sensitivity, deactivation interval, fast unlock, voice and signal tone
   volume, voice language, key tone, backlight and brightness, lock button, tamper alarm, disable the keypad – the same
   as in the SwitchBot app.
 - **Lock Ultra settings** (add the lock as a second entry) – motor speed (fast / normal / quiet), LED light, sound,
   auto-lock and its delay, pause auto-lock, half lock, the button on the lock (press, action), iBeacon and the whole
   **night mode** (from/until, speed, sound, lock at start, full/half lock, auto-lock, auto-unlock).
-- **Selection only** – everything works with dropdowns and buttons; free text is optional (new person name).
+- **Selection only** – everything works with dropdowns and action buttons; free text is optional (new person name).
 - Several keypads: add the integration once per keypad.
 
 ## How it works
@@ -76,8 +81,10 @@ Enrolling and deleting works without the bridge; the last-unlock sensor, rules a
 
 ## Installation
 
-1. HACS → ⋮ → *Custom repositories* → add `https://github.com/Aggro600/SwitchBot-Keypad-Manager` (type *Integration*).
-2. Install **SwitchBot Keypad Manager**, restart Home Assistant.
+1. HACS → search for **SwitchBot Keypad Manager** → *Download*, restart Home Assistant.
+   *Alternative* (before it is listed in HACS): HACS → ⋮ → *Custom repositories* →
+   `https://github.com/Aggro600/SwitchBot-Keypad-Manager` (type *Integration*), then download it.
+2. Restart Home Assistant.
 3. *Settings → Devices & services → Add integration → SwitchBot Keypad Manager*:
    - **Keypad** – picked from the keypads Home Assistant's Bluetooth currently sees (touch the keypad to wake it),
    - **Keypad bridge** – the ESPHome device name of your bridge (can be changed later in the options),
@@ -170,8 +177,13 @@ The keypad always shows success – it does not wait for the lock.
 | `switch.…_approve_unlocks` | approval on/off |
 | `select.…_fallback_without_home_assistant`, `select.…_fallback_for_the_entry` | fallback policy: all / only allowed entries / nobody, and per entry |
 | `text.…_new_person_optional` | optional: add a person by name |
-| `button.…_start_enrollment`, `…_update_entry`, `…_delete_entry`, `…_assign_last_unlock`, `…_sync_with_keypad`, `…_cancel` | actions |
-| `button.…_delete_everything_keypad_list` | deletes every credential on the keypad and the list – press twice within 15 s |
+| `sensor.…_battery`, `binary_sensor.…_charging` | battery level and charging, from the keypad's advertisements |
+| `binary_sensor.…_lockout_alarm`, `…_tamper`, `…_duress_alarm`, `…_low_temperature`, `…_high_temperature` | keypad alarms |
+| `event.…_doorbell` | doorbell button (event type `ring`) |
+| `sensor.…_radar_trigger_level`, `…_radar_trigger_distance` (Vision Pro), `…_motion_trigger_level` (Vision), `…_bluetooth_signal` (disabled) | diagnostics |
+
+The actions (enroll, update, delete, …) are **admin-only actions**, not buttons – see *Actions and event*. In a
+dashboard use a button with `tap_action: perform-action` (see the dashboard examples).
 
 Entity IDs follow your Home Assistant language.
 
@@ -210,12 +222,31 @@ change, read back, restore). A sections example with both is in [docs/dashboard.
 
 ## Actions and event
 
+All actions are **administrator only** (a non-admin user gets *Unauthorized*). Pick the keypad with
+`config_entry_id` or `entity_id` (any entity of the keypad, e.g. `sensor.front_door_status`) – not needed with one
+keypad. Fields that are left out are taken from the keypad's selects (*Person*, *What*, *Validity*, *Entry*), so a
+dashboard button needs no data besides the keypad.
+
 - `switchbot_keypad_manager.enroll` – `person`, `what` (`thumb_right` … `little_left`, `face`, `palm_right`, `palm_left`,
-  `pin_custom`, `pin_random`, `nfc_card`), `validity` (`permanent`, `today`, `24h`, `1w`, `1m`, `once`), `pin`
-  (6–12 digits, for `pin_custom`); returns the entry and, for PINs, the code.
-- `switchbot_keypad_manager.update` – `entry_id`, optional `person` and `what` (the kind stays the same).
+  `pin_custom`, `nfc_card`), `validity` (`permanent`, `today`, `24h`, `1w`, `1m`, `once`), `pin` (6–12 digits,
+  required for `pin_custom`); returns the entry (never the PIN).
+- `switchbot_keypad_manager.update` – `entry_id`, optional `person` and `what` (the kind stays the same). On an
+  *Unknown – …* selection the person is marked and assigned on the next unlock of that kind.
 - `switchbot_keypad_manager.delete` – `entry_id` (from the `entries` attribute); deletes on the keypad and in the list.
-- `switchbot_keypad_manager.sync`
+- `switchbot_keypad_manager.assign_last` – assigns the last unknown unlock to `person` / `what`.
+- `switchbot_keypad_manager.sync`, `switchbot_keypad_manager.delete_all`, `switchbot_keypad_manager.cancel`
+
+```yaml
+# dashboard button
+type: button
+name: Enroll
+icon: mdi:account-plus
+tap_action:
+  action: perform-action
+  perform_action: switchbot_keypad_manager.enroll
+  data:
+    entity_id: sensor.front_door_status
+```
 - Event `switchbot_keypad_manager_unlocked` – `keypad`, `person`, `detail`, `kind`, `kind_text`, `slot`, `text`,
   `rule`, `decision` (`open`, `denied`, `event_only`), `allowed`, `time`.
 
@@ -248,10 +279,9 @@ More examples (one combined automation vs. one automation per case): [docs/examp
 
 ## Good to know
 
-- **PIN codes:** *PIN code (own)* uses the 6–12 digits you type into *PIN code (6–12 digits)* (shown only as
-  asterisks, kept in memory and cleared after enrolling). *PIN code (random)* creates a 6-digit code that is shown
-  **once**: in the status (`state_content: [state, pin]` on the status tile), as the status attribute `pin` and as a
-  notification – until *New PIN noted – hide*, the next action or after 10 minutes. PINs are **never stored** or recorded.
+- **PIN codes:** run the action *Enroll credential* (Developer tools → Actions, or a dashboard button that opens
+  `/config/tools/action?service=switchbot_keypad_manager.enroll`) with *What* = *PIN code* and the 6–12 digits in
+  *PIN*. The PIN goes straight to the keypad – it is **never stored**, shown, logged or returned.
 - Credentials enrolled here are **not known to the SwitchBot app** (it keeps names in your SwitchBot account);
   names live in Home Assistant.
 - **The keypad cannot list its credentials** (the list in the SwitchBot app lives in the SwitchBot cloud). Unknown

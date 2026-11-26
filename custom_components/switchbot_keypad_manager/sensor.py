@@ -1,20 +1,20 @@
 """Sensors: last unlock, credentials, status."""
 from __future__ import annotations
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
+from homeassistant.const import PERCENTAGE, SIGNAL_STRENGTH_DECIBELS_MILLIWATT, EntityCategory
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN
-from .entity import KeypadEntity
+from .entity import AdvEntity, KeypadEntity
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
     if entry.data.get("type") == "lock":
         from .lock import lock_entities
-        async_add_entities(lock_entities("sensor", hass.data[DOMAIN][entry.entry_id]))
+        async_add_entities(lock_entities("sensor", entry.runtime_data))
         return
-    manager = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([LastUnlock(manager), Credentials(manager), Status(manager)])
+    manager = entry.runtime_data
+    async_add_entities([LastUnlock(manager), Credentials(manager), Status(manager), *adv_sensors(manager)])
 
 
 class LastUnlock(KeypadEntity, SensorEntity):
@@ -64,6 +64,7 @@ class Credentials(KeypadEntity, SensorEntity):
             "list": "\n".join(m.label(e) for e in ordered),
             "on_keypad": {m.t["kind"].get(k, k): n for k, n in m.counts.items()},
             "unassigned": m.unassigned_counts(),
+            "pending": {m.t["kind"][k]: v["person"] for k, v in m.pending.items()},
             "fallback_mode": m.fallback_mode,
             "person_rules": dict(m.rules),
             "unknown_rule": m.unknown_rule,
@@ -73,11 +74,6 @@ class Credentials(KeypadEntity, SensorEntity):
 
 class Status(KeypadEntity, SensorEntity):
     _attr_icon = "mdi:information-outline"
-    _unrecorded_attributes = frozenset({"pin"})
-
-    @property
-    def extra_state_attributes(self):
-        return {"pin": self.manager.new_pin} if self.manager.new_pin else None
 
     def __init__(self, manager):
         super().__init__(manager, "status")
@@ -85,3 +81,50 @@ class Status(KeypadEntity, SensorEntity):
     @property
     def native_value(self):
         return self.manager.status[:255]
+
+
+def adv_sensors(manager) -> list:
+    """From the keypad's advertisements: battery, signal and (Vision Pro: radar, Vision: PIR) trigger values."""
+    pro = "Pro" in manager.entry.data.get("model", "Keypad Vision Pro")
+    keys = ["radar_triggered_level", "radar_triggered_distance"] if pro else ["pir_triggered_level"]
+    return [Battery(manager), Rssi(manager), *[AdvValue(manager, k) for k in keys]]
+
+
+class Battery(AdvEntity, SensorEntity):
+    _attr_device_class = SensorDeviceClass.BATTERY
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = PERCENTAGE
+
+    def __init__(self, manager):
+        super().__init__(manager, "battery")
+
+    @property
+    def native_value(self):
+        return self.manager.adv.get("battery")
+
+
+class Rssi(AdvEntity, SensorEntity):
+    _attr_device_class = SensorDeviceClass.SIGNAL_STRENGTH
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = SIGNAL_STRENGTH_DECIBELS_MILLIWATT
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, manager):
+        super().__init__(manager, "rssi")
+
+    @property
+    def native_value(self):
+        return self.manager.rssi
+
+
+class AdvValue(AdvEntity, SensorEntity):
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, manager, key):
+        super().__init__(manager, key)
+        self.key = key
+
+    @property
+    def native_value(self):
+        return self.manager.adv.get(self.key)
