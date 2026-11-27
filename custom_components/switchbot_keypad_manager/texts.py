@@ -35,6 +35,7 @@ TEXTS = {
         "err_select": "Bitte zuerst einen Eintrag wählen",
         "pending": "Vorgemerkt: das nächste unbekannte {kind} wird {who} zugeordnet – jetzt einmal damit am Keypad entsperren",
         "pending_done": "Zugeordnet beim Entsperren: **{entry}**",
+        "slot_fixed": "Platz korrigiert beim Entsperren: **{entry}** (das Keypad hatte beim Anlernen einen falschen Platz gemeldet)",
     },
     "en": {
         "kind": {"pin": "PIN code", "nfc": "NFC card", "fingerprint": "Fingerprint", "face": "Face", "palm": "Palm"},
@@ -68,6 +69,7 @@ TEXTS = {
         "err_select": "Select an entry first",
         "pending": "Marked: the next unknown {kind} will be assigned to {who} – unlock with it at the keypad now",
         "pending_done": "Assigned on unlock: **{entry}**",
+        "slot_fixed": "Slot corrected on unlock: **{entry}** (the keypad reported a wrong slot when it was enrolled)",
     },
 }
 

@@ -230,6 +230,8 @@ class Keypad:
                     before = (await self.counts()).get(kind)
                 except KeypadError:
                     before = None
+            if kind != PIN:
+                await self._wait_idle()
             if kind == PIN:
                 return await self._pin(limited, once, valid_from, valid_until, report, pin)
             if kind == FINGERPRINT:
@@ -363,6 +365,21 @@ class Keypad:
                     return "done"
             await asyncio.sleep(1)
         return "timeout"
+
+    async def _wait_idle(self, seconds: int = 30) -> None:
+        """Wait until the keypad has left a previous enrollment.
+
+        The keypad keeps capturing for a while after an enrollment was cancelled or timed out in Home Assistant
+        (there is no "stop" command for fingerprints). A new start in that phase was answered with a bogus slot
+        (100 instead of 12) and left the keypad unresponsive, so only start once it no longer reports busy.
+        """
+        deadline = time.monotonic() + seconds
+        while time.monotonic() < deadline:
+            if await self._status() != BUSY:
+                return
+            _LOGGER.debug("Keypad still busy from a previous enrollment - waiting")
+            await asyncio.sleep(2)
+        raise KeypadError("The keypad is still busy with a previous enrollment – wait a minute and try again")
 
     @staticmethod
     def _reason(outcome: str, duplicate_text: str) -> str:

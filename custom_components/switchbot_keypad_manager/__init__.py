@@ -252,6 +252,10 @@ class Manager:
                 self.choice["entry"] = self.label(match)
             self.status_key, self.status_args = "assigned", {"entry": self.label(match)}
             self._notify(self.t["pending_done"].format(entry=self.label(match)))
+        if match is None:
+            self._heal_slot(kind, slot)
+        elif not match.get("seen"):
+            match["seen"] = True
         decision, rule = self.decide(match)
         allowed = decision == "open"
         # Always answer a bridge with approval: with "Approve unlocks" off every unlock is approved, otherwise the
@@ -278,6 +282,30 @@ class Manager:
                 message += f" ({self.t[decision]})"
             self.hass.async_create_task(self.hass.services.async_call(
                 "logbook", "log", {"name": self.entry.title, "message": message}))
+
+    def _heal_slot(self, kind: str, slot: int) -> dict | None:
+        """Fix an entry whose slot the keypad reported wrongly when it was enrolled.
+
+        Observed 2026-11: the fingerprint start reply named slot 100 while the finger was stored in slot 12, so
+        its unlocks showed up as unknown. It is only safe to re-map when every credential of this kind on the
+        keypad is in the list (count == entries) and exactly one entry enrolled from Home Assistant has never
+        unlocked - then the unknown unlock can only be that entry. The current unlock is still decided as
+        unknown; the corrected entry applies from the next unlock on.
+        """
+        if kind not in self.counts or any(e["kind"] == kind and e["slot"] == slot for e in self.entries):
+            return None
+        same = [e for e in self.entries if e["kind"] == kind]
+        if self.counts[kind] != len(same):
+            return None
+        unseen = [e for e in same if e.get("source") == "home_assistant" and not e.get("seen")]
+        if len(unseen) != 1:
+            return None
+        entry = unseen[0]
+        _LOGGER.warning("%s: %s %s unlocked as slot %s, enrolled as slot %s - slot corrected",
+                        self.entry.title, kind, self.label(entry), slot, entry["slot"])
+        entry["slot"], entry["keypad_slot"], entry["seen"] = slot, keypad_slot_from_index(kind, slot), True
+        self._notify(self.t["slot_fixed"].format(entry=self.label(entry)))
+        return entry
 
     # ---------- approval rules ----------
     def decide(self, entry: dict | None) -> tuple[str, str]:
